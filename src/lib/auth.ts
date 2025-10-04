@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   debug: process.env.NODE_ENV === "development",
-  secret: process.env.NEXTAUTH_SECRET || "your-secret-key-here-change-in-production",
+  secret: process.env.NEXTAUTH_SECRET || "fallback-secret-key-for-development-only-change-in-production",
   adapter: DrizzleAdapter(db),
   trustHost: true, // Allow dynamic host detection
   providers: [
@@ -31,6 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             .limit(1)
 
           if (!user.length) {
+            console.log("User not found:", credentials.email)
             return null
           }
 
@@ -38,9 +39,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           // For now, simple password comparison (in production, use proper hashing)
           if (credentials.password !== foundUser.password) {
+            console.log("Invalid password for user:", credentials.email)
             return null
           }
 
+          console.log("User authenticated successfully:", foundUser.email)
+          
           // Return user object
           return {
             id: foundUser.id,
@@ -50,7 +54,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
         } catch (error) {
           console.error("Auth error:", error)
-          return null
+          // Return a more specific error response
+          throw new Error("Database connection failed")
         }
       }
     })

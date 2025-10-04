@@ -61,17 +61,32 @@ const LoginForm = () => {
         redirect: false,
       });
 
+      console.log("SignIn result:", result);
+
       if (result?.error) {
-        setError("Email atau password salah");
+        console.error("SignIn error:", result.error);
+        if (result.error.includes("JSON")) {
+          setError("Masalah koneksi server, silakan coba lagi");
+        } else {
+          setError("Email atau password salah");
+        }
         return;
       }
 
-      // DIRECT REDIRECT after successful login - NO INTERMEDIATE PAGES
-      const targetUrl = redirectTo && redirectTo !== "/login" ? redirectTo : "/operations";
-      router.replace(targetUrl);
+      if (result?.ok) {
+        // DIRECT REDIRECT after successful login - NO INTERMEDIATE PAGES
+        const targetUrl = redirectTo && redirectTo !== "/login" ? redirectTo : "/operations";
+        router.replace(targetUrl);
+      } else {
+        setError("Login gagal, silakan coba lagi");
+      }
     } catch (err) {
       console.error("Login error:", err);
-      setError("Terjadi kesalahan saat login");
+      if (err instanceof Error && err.message.includes("JSON")) {
+        setError("Masalah koneksi server, silakan coba lagi");
+      } else {
+        setError("Terjadi kesalahan saat login");
+      }
     } finally {
       setIsLoading(false);
     }

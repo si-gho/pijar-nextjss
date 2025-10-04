@@ -33,7 +33,7 @@ export const config = {
      * Exclude: api, _next, static files, login page
      */
     "/operations/:path*",
-    "/admin/:path*",
+    "/admin/:path*", 
     "/profile/:path*",
     "/"
   ],
