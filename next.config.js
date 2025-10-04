@@ -1,13 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Remove output: 'export' to enable API routes
-  trailingSlash: true,
+  // Enable API routes for production
+  trailingSlash: false,
   images: {
-    unoptimized: true
+    unoptimized: true,
+    domains: ['localhost']
   },
-  // Only use basePath for static export if needed
-  // basePath: process.env.NODE_ENV === 'production' ? '/pijar-pro-pantau' : '',
-  // assetPrefix: process.env.NODE_ENV === 'production' ? '/pijar-pro-pantau/' : '',
+  // Optimize for Vercel deployment
+  experimental: {
+    serverComponentsExternalPackages: ['@neondatabase/serverless']
+  },
+  // Environment variables validation
+  env: {
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  }
 }
 
 module.exports = nextConfig
