@@ -1,6 +1,6 @@
 # Pijar Pro Pantau - Sistem Pantau Material Konstruksi
 
-Aplikasi web mobile-first untuk monitoring dan pencatatan aliran material konstruksi dengan authentication dan dashboard yang komprehensif.
+Aplikasi web mobile-first untuk monitoring dan pencatatan aliran material konstruksi dengan authentication dan dashboard yang komprehensif. Dibangun dengan arsitektur modular yang mendukung pengembangan lanjutan dan reusability untuk berbagai domain bisnis.
 
 ## 🚀 Quick Start
 
@@ -20,6 +20,28 @@ pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the application.
+
+## 📚 Dokumentasi Pengembangan
+
+Untuk pengembangan lanjutan dan pemahaman arsitektur yang mendalam, lihat dokumentasi komprehensif di folder [`pijar-docs/`](./pijar-docs/):
+
+### **Dokumentasi Kontekstual**
+- [**Development Context**](./pijar-docs/01-development-context.md) - Konteks, visi, dan tantangan pengembangan
+- [**Current Architecture Analysis**](./pijar-docs/02-current-architecture-analysis.md) - Analisis mendalam arsitektur saat ini
+- [**Future Development Strategy**](./pijar-docs/03-future-development-strategy.md) - Roadmap dan strategi pengembangan masa depan
+
+### **Dokumentasi Teknis**
+- [**Technical Architecture Guide**](./pijar-docs/04-technical-architecture-guide.md) - Panduan implementasi arsitektur teknis
+- [**Implementation Patterns**](./pijar-docs/05-implementation-patterns.md) - Pattern dan best practices
+- [**Security & Performance Guidelines**](./pijar-docs/06-security-performance-guidelines.md) - Panduan keamanan dan optimasi performa
+- [**Modular Development Framework**](./pijar-docs/07-modular-development-framework.md) - Framework pengembangan modular
+
+### **Panduan Praktis**
+- [**Development Workflow**](./pijar-docs/08-development-workflow.md) - Alur kerja dan standar pengembangan
+- [**Role Authentication System**](./ROLE_AUTHENTICATION_DOCS.md) - Sistem autentikasi berbasis role
+- [**Mobile Optimization**](./MOBILE_OPTIMIZATION_SUMMARY.md) - Optimasi untuk perangkat mobile
+
+> **💡 Untuk Developer Baru**: Mulai dengan [Development Context](./pijar-docs/01-development-context.md) untuk memahami visi dan konteks, lalu lanjut ke [Technical Architecture Guide](./pijar-docs/04-technical-architecture-guide.md) untuk implementasi.
 
 ## 🗄️ Database Setup
 
@@ -46,17 +68,33 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
    curl -X POST http://localhost:3000/api/seed
    ```
 
-## 📱 Fitur
+## 📱 Fitur Saat Ini
 
-- **Mobile-first responsive design**
-- **Modern UI dengan shadcn/ui components**
-- **Dashboard untuk monitoring material**
-- **Laporan material masuk dan keluar**
-- **Riwayat transaksi dengan filtering**
-- **Manajemen stok dengan progress tracking**
-- **Profile management**
-- **Toast notifications**
-- **Optimized untuk deployment di Hugging Face Spaces**
+### **Core Features**
+- **Mobile-first responsive design** dengan UI yang intuitif
+- **Role-based authentication** (Admin/Operator) dengan NextAuth.js v5
+- **Dashboard monitoring** material konstruksi real-time
+- **Material tracking** untuk laporan masuk dan keluar
+- **Inventory management** dengan progress tracking
+- **Transaction history** dengan filtering dan pencarian
+- **User profile management** dan pengaturan akun
+
+### **Technical Features**
+- **Modern UI** dengan shadcn/ui components dan Tailwind CSS
+- **Type-safe development** dengan TypeScript dan Zod validation
+- **Database integration** dengan PostgreSQL dan Drizzle ORM
+- **Optimized performance** dengan Next.js 15 dan React Query
+- **Toast notifications** untuk user feedback
+- **PWA-ready** untuk instalasi mobile
+
+### **🚀 Fitur yang Sedang Dikembangkan**
+- **Advanced Admin Dashboard** - User management dan system configuration
+- **Enhanced Permission System** - Fine-grained access control
+- **Reporting & Analytics** - Custom reports dan data visualization
+- **Multi-project Support** - Project isolation dan resource allocation
+- **API Integration** - Webhook support dan third-party integrations
+
+> **📖 Lihat [Future Development Strategy](./pijar-docs/03-future-development-strategy.md) untuk roadmap lengkap pengembangan.**
 
 ## 🛠️ Tech Stack
 
@@ -73,6 +111,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 📁 Struktur Project
 
+### **Current Structure**
 ```
 src/
 ├── app/                    # Next.js App Router
@@ -98,11 +137,31 @@ src/
 │   └── ui/               # shadcn/ui components
 ├── assets/               # Images & static files
 ├── hooks/               # Custom hooks (API, toast)
-└── lib/                # Database, schema, utilities
-    ├── db.ts           # Database connection
-    ├── schema.ts       # Drizzle schema
-    └── seed.ts         # Database seeder
+├── lib/                # Database, schema, utilities
+│   ├── db.ts           # Database connection
+│   ├── schema.ts       # Drizzle schema
+│   └── seed.ts         # Database seeder
+└── types/              # TypeScript type definitions
 ```
+
+### **Target Modular Structure**
+```
+src/
+├── features/              # Feature-based modules
+│   ├── admin/            # User & role management
+│   ├── inventory/        # Material & stock management
+│   ├── projects/         # Project management
+│   └── reporting/        # Analytics & reports
+├── shared/               # Shared utilities & components
+│   ├── components/       # Reusable UI components
+│   ├── services/         # Business logic services
+│   ├── hooks/           # Custom hooks
+│   ├── types/           # Shared type definitions
+│   └── utils/           # Utility functions
+└── app/                 # Next.js App Router (routes only)
+```
+
+> **🏗️ Lihat [Modular Development Framework](./pijar-docs/07-modular-development-framework.md) untuk panduan implementasi struktur modular.**
 
 ## 🎨 Design System
 
@@ -153,17 +212,61 @@ npm run export
 
 Create `.env.local` for development:
 ```env
+# Database
+DATABASE_URL="your_neon_database_connection_string"
+
+# Authentication
+NEXTAUTH_SECRET="your_strong_secret_key_here"
+NEXTAUTH_URL="http://localhost:3000"
+
+# App Configuration
 NEXT_PUBLIC_APP_NAME="Pijar Pro Pantau"
 NEXT_PUBLIC_APP_VERSION="1.0.0"
+
+# Optional: Feature Flags
+FEATURE_ADMIN_MODULE="true"
+FEATURE_REPORTING_MODULE="true"
+FEATURE_PLUGIN_SYSTEM="false"
+
+# Optional: Security
+ENCRYPTION_KEY="your_encryption_key_for_sensitive_data"
+MAX_LOGIN_ATTEMPTS="5"
+SESSION_TIMEOUT="1800000"
 ```
+
+> **🔒 Lihat [Security Guidelines](./pijar-docs/06-security-performance-guidelines.md) untuk konfigurasi keamanan yang lebih detail.**
 
 ## 🤝 Kontribusi
 
+Kami menyambut kontribusi untuk pengembangan sistem ini! Ikuti panduan berikut:
+
+### **Getting Started**
 1. Fork the project
-2. Create feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open Pull Request
+2. Clone your fork: `git clone https://github.com/your-username/pijar-nextjs.git`
+3. Install dependencies: `pnpm install`
+4. Create feature branch: `git checkout -b feature/amazing-feature`
+
+### **Development Process**
+1. **Follow the workflow**: Lihat [Development Workflow](./pijar-docs/08-development-workflow.md)
+2. **Code standards**: Ikuti [Implementation Patterns](./pijar-docs/05-implementation-patterns.md)
+3. **Security**: Terapkan [Security Guidelines](./pijar-docs/06-security-performance-guidelines.md)
+4. **Testing**: Pastikan test coverage >80%
+
+### **Commit & PR**
+1. Commit dengan format: `feat(scope): description`
+2. Push to branch: `git push origin feature/amazing-feature`
+3. Open Pull Request dengan template yang disediakan
+4. Tunggu code review dan approval
+
+### **Areas for Contribution**
+- 🔐 **Security improvements** (password hashing, input validation)
+- 🏗️ **Architecture refactoring** (service layer, modular structure)
+- 🧪 **Testing** (unit tests, integration tests, E2E tests)
+- 📊 **Admin features** (user management, reporting, analytics)
+- 🎨 **UI/UX improvements** (accessibility, mobile optimization)
+- 📚 **Documentation** (API docs, tutorials, examples)
+
+> **💡 Untuk kontributor baru**: Mulai dengan issues yang berlabel `good-first-issue` atau `help-wanted`.
 
 ## 📄 License
 

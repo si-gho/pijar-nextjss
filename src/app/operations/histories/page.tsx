@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ArrowDownCircle, ArrowUpCircle, ChevronLeft, ChevronRight, Filter, Calendar } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { useApi } from "@/hooks/use-api";
 import { useMemo } from "react";
 
@@ -25,21 +24,60 @@ interface Transaction {
 }
 
 const HistoriesPage = () => {
-  const { data: transactions, loading } = useApi<Transaction[]>('/api/operations/transactions');
+  const { data: transactions, loading, error } = useApi<Transaction[]>('/api/operations/transactions');
+  
+  // Debug: Log data untuk memastikan API berfungsi
+  console.log('API Response:', { 
+    transactions: transactions?.length || 0, 
+    loading, 
+    error,
+    sample: transactions?.[0] 
+  });
 
-  const { todayTransactions, inCount, outCount } = useMemo(() => {
-    if (!transactions) return { todayTransactions: [], inCount: 0, outCount: 0 };
+  // Menghitung transaksi hari ini berdasarkan tanggal dan tipe
+  const { inCount, outCount } = useMemo(() => {
+    if (!transactions || !Array.isArray(transactions)) {
+      console.log('No transactions data or not array:', transactions);
+      return { inCount: 0, outCount: 0 };
+    }
     
-    const today = new Date().toDateString();
-    const todayTrans = transactions.filter(t => 
-      new Date(t.createdAt).toDateString() === today
-    );
-    
-    return {
-      todayTransactions: todayTrans,
-      inCount: todayTrans.filter(t => t.type === 'in').length,
-      outCount: todayTrans.filter(t => t.type === 'out').length,
-    };
+    try {
+      const today = new Date();
+      const todayString = today.toLocaleDateString('id-ID', { 
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      
+      console.log('Today string:', todayString);
+      
+      const todayTransactions = transactions.filter(t => {
+        if (!t.createdAt) return false;
+        
+        const transactionDate = new Date(t.createdAt);
+        const transactionString = transactionDate.toLocaleDateString('id-ID', { 
+          timeZone: 'Asia/Jakarta',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        
+        return transactionString === todayString;
+      });
+      
+      console.log('Today transactions:', todayTransactions.length);
+      
+      const inCount = todayTransactions.filter(t => t.type === 'in').length;
+      const outCount = todayTransactions.filter(t => t.type === 'out').length;
+      
+      console.log('Counts:', { inCount, outCount });
+      
+      return { inCount, outCount };
+    } catch (err) {
+      console.error('Error calculating counts:', err);
+      return { inCount: 0, outCount: 0 };
+    }
   }, [transactions]);
 
   const formatTime = (dateString: string) => {
@@ -93,18 +131,33 @@ const HistoriesPage = () => {
               <ArrowDownCircle className="h-4 w-4 text-success" />
               <span className="text-xs text-muted-foreground font-medium">Masuk</span>
             </div>
-            <p className="text-2xl font-display font-bold text-success">{inCount}</p>
-            <p className="text-xs text-muted-foreground mt-1">Transaksi</p>
+            <p className="text-2xl font-display font-bold text-success">
+              {loading ? '...' : error ? '!' : inCount}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {error ? 'Error' : 'Transaksi'}
+            </p>
           </Card>
           <Card className="p-4 bg-gradient-to-br from-danger-light to-danger/5 border-danger/20">
             <div className="flex items-center gap-2 mb-1">
               <ArrowUpCircle className="h-4 w-4 text-danger" />
               <span className="text-xs text-muted-foreground font-medium">Keluar</span>
             </div>
-            <p className="text-2xl font-display font-bold text-danger">{outCount}</p>
-            <p className="text-xs text-muted-foreground mt-1">Transaksi</p>
+            <p className="text-2xl font-display font-bold text-danger">
+              {loading ? '...' : error ? '!' : outCount}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {error ? 'Error' : 'Transaksi'}
+            </p>
           </Card>
         </div>
+        
+        {/* Error Message */}
+        {error && (
+          <Card className="p-4 bg-destructive/10 border-destructive/20">
+            <p className="text-sm text-destructive">Error: {error}</p>
+          </Card>
+        )}
 
         {/* Tabs */}
         <Tabs defaultValue="all" className="w-full">

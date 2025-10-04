@@ -23,8 +23,8 @@ interface LogoutButtonProps {
   children?: React.ReactNode;
 }
 
-export function LogoutButton({ 
-  variant = "outline", 
+export function LogoutButton({
+  variant = "outline",
   size = "default",
   className = "",
   showConfirmation = true,
@@ -49,13 +49,16 @@ export function LogoutButton({
   const performLogout = async () => {
     setIsLoggingOut(true);
     try {
-      // Use relative URL to prevent localhost redirect
-      await signOut({ 
-        callbackUrl: "/login",
-        redirect: true 
+      // Use window.location.origin to ensure correct domain
+      const callbackUrl = `${window.location.origin}/login`;
+      await signOut({
+        callbackUrl,
+        redirect: true
       });
     } catch (error) {
       console.error("Logout error:", error);
+      // Fallback manual redirect if signOut fails
+      window.location.href = "/login";
     } finally {
       setIsLoggingOut(false);
     }

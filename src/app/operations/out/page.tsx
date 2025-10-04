@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import materialsSteel from "@/assets/materials-steel.jpg";
 import { useApi } from "@/hooks/use-api";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 
 interface Project {
   id: number;
@@ -31,6 +33,8 @@ interface Inventory {
 }
 
 const MaterialOutPage = () => {
+  const { user, isLoading: authLoading } = useAuth();
+  
   const [formData, setFormData] = useState({
     projectId: '',
     inventoryId: '',
@@ -80,11 +84,16 @@ const MaterialOutPage = () => {
       return;
     }
 
+    if (!user?.id) {
+      toast.error("Sesi tidak valid, silakan login ulang");
+      return;
+    }
+
     try {
       await postData({
         projectId: parseInt(formData.projectId),
         inventoryId: parseInt(formData.inventoryId),
-        userId: 'user-1', // TODO: Get from auth context
+        userId: user.id,
         type: 'out',
         quantity: formData.quantity,
         unit: formData.unit,
@@ -109,6 +118,20 @@ const MaterialOutPage = () => {
       });
     }
   };
+
+  // Show loading if auth is still loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <LoadingSpinner text="Memuat..." />
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated (handled by useAuth)
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">

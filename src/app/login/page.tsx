@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Lock, LogIn, AlertCircle, Package } from "lucide-react";
+import React from "react";
 
 const LoginForm = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect");
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
@@ -21,11 +22,19 @@ const LoginForm = () => {
 
   const { data: session, status } = useSession();
 
+  // Handle redirect when user is already logged in
+  React.useEffect(() => {
+    if (session) {
+      const targetUrl = redirectTo && redirectTo !== "/login" ? redirectTo : "/operations";
+      router.replace(targetUrl);
+    }
+  }, [session, redirectTo, router]);
+
   const onSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const trimmedEmail = email.trim().toLowerCase();
-    
+
     // Validation
     if (!trimmedEmail || !password) {
       setError("Email dan password harus diisi");
@@ -80,10 +89,8 @@ const LoginForm = () => {
     );
   }
 
-  // DIRECT REDIRECT if user is already logged in
+  // Show loading spinner if user is already logged in (redirect is happening)
   if (session) {
-    const targetUrl = redirectTo && redirectTo !== "/login" ? redirectTo : "/operations";
-    router.replace(targetUrl);
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />

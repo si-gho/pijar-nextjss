@@ -23,7 +23,7 @@ interface Project {
 
 interface Transaction {
   id: number;
-  type: string;
+  type: 'in' | 'out';
   createdAt: string;
 }
 
@@ -31,7 +31,7 @@ export default function OperationsPage() {
   const { user, isLoading } = useAuth();
   const { data: projects } = useApi<Project[]>("/api/operations/projects");
   const { data: transactions } = useApi<Transaction[]>("/api/operations/transactions");
-  
+
   const [todayStats, setTodayStats] = useState({
     totalTransactions: 0,
     activeProjects: 0,
@@ -41,11 +41,26 @@ export default function OperationsPage() {
 
   useEffect(() => {
     if (transactions && projects) {
-      const today = new Date().toDateString();
-      const todayTransactions = transactions.filter(t => 
-        new Date(t.createdAt).toDateString() === today
-      );
+      // Menghitung transaksi hari ini berdasarkan tanggal
+      const today = new Date();
+      const todayString = today.toLocaleDateString('id-ID', { 
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
       
+      const todayTransactions = transactions.filter(t => {
+        const transactionDate = new Date(t.createdAt);
+        const transactionString = transactionDate.toLocaleDateString('id-ID', { 
+          timeZone: 'Asia/Jakarta',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        return transactionString === todayString;
+      });
+
       setTodayStats({
         totalTransactions: todayTransactions.length,
         activeProjects: projects.length,
@@ -64,7 +79,7 @@ export default function OperationsPage() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <Header />
-      
+
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Greeting Section */}
         <Card className="p-5 bg-gradient-to-br from-card to-primary-light/30 shadow-md border-primary/10 animate-fade-in">
@@ -77,7 +92,7 @@ export default function OperationsPage() {
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {isAdmin ? "Administrator" : "Operator"} - Apa yang ingin Anda lakukan hari ini?
               </p>
-              
+
               {/* Quick Stats */}
               <div className="flex gap-4 mt-4">
                 <div className="flex items-center gap-2">
@@ -147,7 +162,7 @@ export default function OperationsPage() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-display font-bold text-foreground text-lg">Fitur Administrator</h3>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <Link href="/operations/users" className="block group">
                 <Card className="p-6 hover:shadow-lg transition-all duration-300 cursor-pointer bg-gradient-to-br from-info-light to-info/5 border-info/20 hover:scale-[1.02] hover:-translate-y-1">
@@ -198,8 +213,8 @@ export default function OperationsPage() {
               projects.map((project, index) => (
                 <Card key={project.id} className="overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border-0 group">
                   <div className="relative h-40 overflow-hidden">
-                    <Image 
-                      src={index === 0 ? constructionSite1 : constructionSite2} 
+                    <Image
+                      src={index === 0 ? constructionSite1 : constructionSite2}
                       alt={project.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />

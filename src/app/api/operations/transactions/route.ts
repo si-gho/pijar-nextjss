@@ -44,13 +44,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('Transaction POST request body:', body);
+    
     const { projectId, inventoryId, userId, type, quantity, unit, notes } = body;
 
     // Validate required fields
     if (!projectId || !inventoryId || !userId || !type || !quantity || !unit) {
+      console.log('Missing required fields:', { projectId, inventoryId, userId, type, quantity, unit });
       return NextResponse.json({ 
         error: 'Missing required fields',
-        details: 'projectId, inventoryId, userId, type, quantity, and unit are required'
+        details: 'projectId, inventoryId, userId, type, quantity, and unit are required',
+        received: { projectId, inventoryId, userId, type, quantity, unit }
       }, { status: 400 });
     }
 
@@ -80,13 +84,28 @@ export async function POST(request: NextRequest) {
       ));
 
     if (inventory.length === 0) {
+      console.log('Inventory not found:', { inventoryId, projectId });
       return NextResponse.json({ 
         error: 'Invalid inventory or project',
         details: 'The specified material does not exist in this project'
       }, { status: 404 });
     }
 
-    const newTransaction = await db.insert(transactions).values({
+    // Validate that user exists
+    const userExists = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, userId));
+
+    if (userExists.length === 0) {
+      console.log('User not found:', userId);
+      return NextResponse.json({ 
+        error: 'Invalid user',
+        details: 'The specified user does not exist'
+      }, { status: 404 });
+    }
+
+    const transactionData = {
       projectId: parseInt(projectId),
       inventoryId: parseInt(inventoryId),
       userId,
@@ -94,8 +113,13 @@ export async function POST(request: NextRequest) {
       quantity: quantity.toString(),
       unit: unit.trim(),
       notes: notes?.trim() || null,
-    }).returning();
+    };
 
+    console.log('Creating transaction with data:', transactionData);
+
+    const newTransaction = await db.insert(transactions).values(transactionData).returning();
+
+    console.log('Transaction created successfully:', newTransaction[0]);
     return NextResponse.json(newTransaction[0], { status: 201 });
   } catch (error) {
     console.error('Error creating transaction:', error);
