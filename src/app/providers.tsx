@@ -8,8 +8,6 @@ import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  console.log("🧩 Providers initializing");
-  
   return (
     <QueryProvider>
       <AuthSessionProvider>

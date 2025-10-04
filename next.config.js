@@ -1,19 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable API routes for production
-  trailingSlash: false,
+  // Basic Next.js configuration
+  reactStrictMode: true,
+  
+  // Image optimization
   images: {
     unoptimized: true,
-    domains: ['localhost']
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   },
-  // Optimize for Vercel deployment
-  experimental: {
-    serverComponentsExternalPackages: ['@neondatabase/serverless']
-  },
-  // Environment variables validation
-  env: {
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000'
-  }
+  
+  // External packages for serverless (Next.js 15+ syntax)
+  serverExternalPackages: ['@neondatabase/serverless'],
 }
 
 module.exports = nextConfig

@@ -66,7 +66,7 @@ const LoginForm = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [email, password, router]);
+  }, [email, password, router, redirectTo]);
 
   // Show loading while checking session
   if (status === "loading") {
