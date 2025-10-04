@@ -8,9 +8,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChevronRight, User, Key, Bell, HelpCircle, LogOut, Award, MapPin, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useApi } from "@/hooks/use-api";
+import { LogoutButton } from "@/components/LogoutButton";
 
 const UsersPage = () => {
-  const { data: userStats } = useApi<{
+  const { data: userProfile, loading: profileLoading } = useApi<{
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    image?: string;
+    joinedDate: string;
+    initials: string;
+    displayRole: string;
+  }>('/api/user/profile');
+  
+  const { data: userStats, loading: statsLoading } = useApi<{
     currentMonth: {
       materialIn: number;
       materialOut: number;
@@ -21,6 +33,8 @@ const UsersPage = () => {
       accuracy: number;
     };
   }>('/api/operations/user-stats');
+
+
 
   const stats = [
     { 
@@ -50,6 +64,36 @@ const UsersPage = () => {
     { icon: HelpCircle, label: "Bantuan", href: "#", description: "Pusat bantuan & FAQ" },
   ];
 
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <Header title="Profil Saya" />
+        <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+          <Card className="p-6 shadow-lg">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="h-28 w-28 bg-muted rounded-full animate-pulse"></div>
+              <div className="h-6 w-32 bg-muted rounded animate-pulse"></div>
+              <div className="h-4 w-24 bg-muted rounded animate-pulse"></div>
+            </div>
+          </Card>
+          <Card className="p-6 shadow-md">
+            <div className="space-y-4">
+              <div className="h-6 w-24 bg-muted rounded animate-pulse"></div>
+              <div className="grid grid-cols-3 gap-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="text-center space-y-2">
+                    <div className="h-12 w-12 bg-muted rounded-xl mx-auto animate-pulse"></div>
+                    <div className="h-3 bg-muted rounded animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <Header title="Profil Saya" />
@@ -59,19 +103,35 @@ const UsersPage = () => {
         <Card className="p-6 shadow-lg bg-gradient-to-br from-card to-primary-light/20 border-primary/10 animate-fade-in">
           <div className="flex flex-col items-center">
             <div className="relative mb-4">
-              <Avatar className="h-28 w-28 border-4 border-primary/20 shadow-lg">
-                <AvatarImage src="" alt="Operator" />
-                <AvatarFallback className="bg-gradient-primary text-primary-foreground text-3xl font-display font-bold">
-                  OP
-                </AvatarFallback>
-              </Avatar>
+              {profileLoading ? (
+                <div className="h-28 w-28 border-4 border-primary/20 shadow-lg rounded-full bg-muted animate-pulse"></div>
+              ) : (
+                <Avatar className="h-28 w-28 border-4 border-primary/20 shadow-lg">
+                  <AvatarImage src={userProfile?.image || ""} alt={userProfile?.name || "User"} />
+                  <AvatarFallback className="bg-gradient-primary text-primary-foreground text-3xl font-display font-bold">
+                    {userProfile?.initials || "U"}
+                  </AvatarFallback>
+                </Avatar>
+              )}
               <div className="absolute -bottom-1 -right-1 bg-success text-success-foreground rounded-full p-2 shadow-md border-2 border-card">
                 <Award className="h-4 w-4" />
               </div>
             </div>
             
-            <h2 className="text-2xl font-display font-bold text-foreground">Operator Lapangan</h2>
-            <p className="text-sm text-muted-foreground mt-1 font-medium">Anggota Operasi Pijar</p>
+            <h2 className="text-2xl font-display font-bold text-foreground">
+              {profileLoading ? (
+                <div className="h-8 w-48 bg-muted rounded animate-pulse mx-auto"></div>
+              ) : (
+                userProfile?.name || "Pengguna"
+              )}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1 font-medium">
+              {profileLoading ? (
+                <div className="h-4 w-32 bg-muted rounded animate-pulse mx-auto"></div>
+              ) : (
+                userProfile?.displayRole || "Operator Lapangan"
+              )}
+            </p>
             
             <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
               <MapPin className="h-3.5 w-3.5" />
@@ -80,12 +140,18 @@ const UsersPage = () => {
 
             <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
               <Calendar className="h-3.5 w-3.5" />
-              <span>Bergabung sejak Nov 2023</span>
+              <span>
+                {profileLoading ? (
+                  <div className="h-3 w-24 bg-muted rounded animate-pulse"></div>
+                ) : (
+                  `Bergabung sejak ${userProfile?.joinedDate || 'Nov 2023'}`
+                )}
+              </span>
             </div>
             
             <div className="flex gap-2 mt-4 flex-wrap justify-center">
               <Badge className="bg-primary/10 text-primary border-primary/20 font-semibold">
-                Gedung Perkantoran
+                Puskesmas Kotapinang
               </Badge>
               <Badge className="bg-secondary/10 text-secondary border-secondary/20 font-semibold">
                 Jembatan Sungai
@@ -103,29 +169,41 @@ const UsersPage = () => {
             </Badge>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center group">
-                <div className="mb-2 mx-auto w-fit p-3 rounded-2xl bg-gradient-to-br transition-transform duration-300 group-hover:scale-110"
-                  style={{
-                    background: stat.color === "success" 
-                      ? "linear-gradient(135deg, hsl(var(--success-light)), hsl(var(--success) / 0.1))"
-                      : stat.color === "danger"
-                      ? "linear-gradient(135deg, hsl(var(--danger-light)), hsl(var(--danger) / 0.1))"
-                      : "linear-gradient(135deg, hsl(var(--primary-light)), hsl(var(--primary) / 0.1))"
-                  }}
-                >
-                  <div className={`text-3xl font-display font-bold ${
-                    stat.color === "success" ? "text-success" :
-                    stat.color === "danger" ? "text-danger" : "text-primary"
-                  }`}>
-                    {stat.value}
+            {statsLoading ? (
+              // Loading skeleton
+              Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="text-center">
+                  <div className="mb-2 mx-auto w-fit p-3 rounded-2xl bg-muted animate-pulse">
+                    <div className="w-8 h-8 bg-muted-foreground/20 rounded"></div>
+                  </div>
+                  <div className="h-3 bg-muted rounded animate-pulse"></div>
+                </div>
+              ))
+            ) : (
+              stats.map((stat) => (
+                <div key={stat.label} className="text-center group">
+                  <div className="mb-2 mx-auto w-fit p-3 rounded-2xl bg-gradient-to-br transition-transform duration-300 group-hover:scale-110"
+                    style={{
+                      background: stat.color === "success" 
+                        ? "linear-gradient(135deg, hsl(var(--success-light)), hsl(var(--success) / 0.1))"
+                        : stat.color === "danger"
+                        ? "linear-gradient(135deg, hsl(var(--danger-light)), hsl(var(--danger) / 0.1))"
+                        : "linear-gradient(135deg, hsl(var(--primary-light)), hsl(var(--primary) / 0.1))"
+                    }}
+                  >
+                    <div className={`text-3xl font-display font-bold ${
+                      stat.color === "success" ? "text-success" :
+                      stat.color === "danger" ? "text-danger" : "text-primary"
+                    }`}>
+                      {stat.value}
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground font-medium leading-tight px-1">
+                    {stat.label}
                   </div>
                 </div>
-                <div className="text-xs text-muted-foreground font-medium leading-tight px-1">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </Card>
 
@@ -166,13 +244,14 @@ const UsersPage = () => {
         </Card>
 
         {/* Logout Button */}
-        <Button 
-          variant="outline" 
+        <LogoutButton
+          variant="outline"
           className="w-full h-12 border-danger/30 text-danger hover:bg-danger hover:text-danger-foreground transition-all duration-300 font-semibold"
+          showConfirmation={true}
         >
           <LogOut className="h-5 w-5 mr-2" />
           Keluar dari Akun
-        </Button>
+        </LogoutButton>
       </div>
 
       <BottomNav />

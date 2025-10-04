@@ -1,5 +1,5 @@
 import { db } from './db';
-import { projects, inventories, users, transactions } from './schema';
+import { projects, inventories, user, transactions } from './schema';
 
 export async function testDatabaseConnection() {
   try {
@@ -12,7 +12,7 @@ export async function testDatabaseConnection() {
     // Test all tables
     const projectsCount = await db.select().from(projects);
     const inventoriesCount = await db.select().from(inventories);
-    const usersCount = await db.select().from(users);
+    const usersCount = await db.select().from(user);
     const transactionsCount = await db.select().from(transactions);
     
     console.log('📊 Database Status:');

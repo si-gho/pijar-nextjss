@@ -1,17 +1,16 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { users } from '@/lib/schema';
+import { user } from '@/lib/schema';
 
 export async function GET() {
   try {
     const allUsers = await db.select({
-      id: users.id,
-      name: users.name,
-      email: users.email,
-      role: users.role,
-      username: users.username,
-      createdAt: users.createdAt,
-    }).from(users);
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+    }).from(user);
     
     return NextResponse.json(allUsers);
   } catch (error) {

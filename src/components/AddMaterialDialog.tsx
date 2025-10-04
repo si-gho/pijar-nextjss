@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -106,27 +107,30 @@ export function AddMaterialDialog({ projectId, onMaterialAdded }: AddMaterialDia
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="bg-success/10 p-2 rounded-lg">
-              <Package className="h-5 w-5 text-success" />
+    <>
+      {/* Portal to render outside of parent form */}
+      {typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="p-6 border-b border-border">
+              <div className="flex items-center gap-3">
+                <div className="bg-success/10 p-2 rounded-lg">
+                  <Package className="h-5 w-5 text-success" />
+                </div>
+                <div>
+                  <h2 className="font-display font-bold text-foreground text-lg">
+                    Tambah Material Baru
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Tambahkan material yang belum ada di daftar
+                  </p>
+                </div>
+              </div>
             </div>
-            <div>
-              <h2 className="font-display font-bold text-foreground text-lg">
-                Tambah Material Baru
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Tambahkan material yang belum ada di daftar
-              </p>
-            </div>
-          </div>
-        </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="space-y-2">
             <Label htmlFor="materialName" className="text-sm font-semibold">
               Nama Material *
@@ -207,8 +211,11 @@ export function AddMaterialDialog({ projectId, onMaterialAdded }: AddMaterialDia
               )}
             </Button>
           </div>
-        </form>
-      </div>
-    </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }

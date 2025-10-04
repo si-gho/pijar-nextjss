@@ -3,33 +3,41 @@
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Card } from "@/components/ui/card";
-import { ArrowDownCircle, ArrowUpCircle, User, TrendingUp, Clock, MapPin } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, User, TrendingUp, Clock, Users, Settings } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import constructionSite1 from "@/assets/construction-site-1.jpg";
 import constructionSite2 from "@/assets/construction-site-2.jpg";
 import { useApi } from "@/hooks/use-api";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Project {
   id: number;
   name: string;
   location: string;
-  startDate: string;
-  endDate: string;
+  status: string;
+  createdAt: string;
 }
 
 interface Transaction {
   id: number;
-  type: 'in' | 'out';
+  type: string;
   createdAt: string;
 }
 
-const OperationsPage = () => {
-  const { data: projects } = useApi<Project[]>('/api/operations/projects');
-  const { data: transactions } = useApi<Transaction[]>('/api/operations/transactions?limit=100');
+export default function OperationsPage() {
+  const { user, isLoading } = useAuth();
+  const { data: projects } = useApi<Project[]>("/api/operations/projects");
+  const { data: transactions } = useApi<Transaction[]>("/api/operations/transactions");
   
-  const [todayStats, setTodayStats] = useState({ totalTransactions: 0, activeProjects: 0 });
+  const [todayStats, setTodayStats] = useState({
+    totalTransactions: 0,
+    activeProjects: 0,
+  });
+
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     if (transactions && projects) {
@@ -44,6 +52,15 @@ const OperationsPage = () => {
       });
     }
   }, [transactions, projects]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <Header />
@@ -55,10 +72,10 @@ const OperationsPage = () => {
             <div className="flex-1">
               <p className="text-sm text-muted-foreground font-medium">Selamat datang,</p>
               <h2 className="text-2xl font-display font-bold text-foreground mt-1 mb-2">
-                Operator Lapangan
+                {user?.name || "Pengguna"}
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Apa yang ingin Anda lakukan hari ini?
+                {isAdmin ? "Administrator" : "Operator"} - Apa yang ingin Anda lakukan hari ini?
               </p>
               
               {/* Quick Stats */}
@@ -124,6 +141,49 @@ const OperationsPage = () => {
           </Link>
         </div>
 
+        {/* Admin Features */}
+        {isAdmin && (
+          <div className="animate-fade-in" style={{ animationDelay: '0.05s' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display font-bold text-foreground text-lg">Fitur Administrator</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <Link href="/operations/users" className="block group">
+                <Card className="p-6 hover:shadow-lg transition-all duration-300 cursor-pointer bg-gradient-to-br from-info-light to-info/5 border-info/20 hover:scale-[1.02] hover:-translate-y-1">
+                  <div className="flex flex-col items-center text-center gap-3">
+                    <div className="bg-info/20 p-5 rounded-3xl group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                      <Users className="h-9 w-9 text-info stroke-[2.5]" />
+                    </div>
+                    <div>
+                      <h3 className="font-display font-bold text-foreground text-base">Kelola User</h3>
+                      <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                        Manajemen pengguna
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+
+              <Link href="/operations/stocks" className="block group">
+                <Card className="p-6 hover:shadow-lg transition-all duration-300 cursor-pointer bg-gradient-to-br from-warning-light to-warning/5 border-warning/20 hover:scale-[1.02] hover:-translate-y-1">
+                  <div className="flex flex-col items-center text-center gap-3">
+                    <div className="bg-warning/20 p-5 rounded-3xl group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                      <Settings className="h-9 w-9 text-warning stroke-[2.5]" />
+                    </div>
+                    <div>
+                      <h3 className="font-display font-bold text-foreground text-base">Kelola Stok</h3>
+                      <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                        Manajemen inventori
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Active Projects Section */}
         <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
           <div className="flex items-center justify-between mb-4">
@@ -145,38 +205,28 @@ const OperationsPage = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"></div>
                     <div className="absolute inset-0 p-5 flex flex-col justify-between">
-                      <div className="flex items-start justify-between">
-                        <div className="bg-primary/90 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                          <p className="text-xs text-primary-foreground font-semibold">{project.name}</p>
-                        </div>
-                        <div className="bg-success/90 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                          <p className="text-xs text-success-foreground font-bold">Aktif</p>
-                        </div>
+                      <div className="flex justify-between items-start">
+                        <span className="bg-success/90 text-success-foreground px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm">
+                          {project.status}
+                        </span>
                       </div>
-                      <div>
-                        <h4 className="font-display font-bold text-white text-lg mb-1">
-                          {project.name}
-                        </h4>
-                        <div className="flex items-center gap-1.5 text-white/90">
-                          <MapPin className="h-3.5 w-3.5" />
-                          <p className="text-sm font-medium">{project.location}</p>
-                        </div>
-                        <div className="mt-3 flex items-center gap-3">
-                          <span className="text-xs bg-white/20 backdrop-blur-sm text-white px-2.5 py-1 rounded-full font-medium">
-                            Material Aktif
-                          </span>
-                          <span className="text-xs bg-white/20 backdrop-blur-sm text-white px-2.5 py-1 rounded-full font-medium">
-                            Transaksi
-                          </span>
-                        </div>
+                      <div className="text-white">
+                        <h4 className="font-display font-bold text-lg mb-2 leading-tight">{project.name}</h4>
+                        <p className="text-white/90 text-sm flex items-center gap-2">
+                          <span className="w-1 h-1 bg-white/60 rounded-full"></span>
+                          {project.location}
+                        </p>
                       </div>
                     </div>
                   </div>
                 </Card>
               ))
             ) : (
-              <Card className="p-6 text-center">
-                <p className="text-muted-foreground">Tidak ada proyek aktif</p>
+              <Card className="p-8 text-center">
+                <div className="text-muted-foreground">
+                  <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm">Belum ada proyek aktif</p>
+                </div>
               </Card>
             )}
           </div>
@@ -186,6 +236,4 @@ const OperationsPage = () => {
       <BottomNav />
     </div>
   );
-};
-
-export default OperationsPage;
+}

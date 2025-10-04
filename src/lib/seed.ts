@@ -1,5 +1,5 @@
 import { db } from './db';
-import { projects, inventories, users, transactions } from './schema';
+import { projects, inventories, user, transactions } from './schema';
 
 export async function seedDatabase() {
   try {
@@ -10,37 +10,34 @@ export async function seedDatabase() {
     await db.delete(transactions);
     await db.delete(inventories);
     await db.delete(projects);
-    await db.delete(users);
+    await db.delete(user);
 
     // Insert sample users
     console.log('👥 Inserting users...');
-    const sampleUsers = await db.insert(users).values([
+    const sampleUsers = await db.insert(user).values([
       {
         id: 'user-1',
         name: 'Ahmad Operator',
         email: 'ahmad@pijar.com',
         role: 'operator',
-        username: 'ahmad_op',
-        emailVerified: true,
-        isAnonymous: false,
+        password: 'password123',
+        emailVerified: new Date(),
       },
       {
         id: 'user-2',
-        name: 'Siti Supervisor',
+        name: 'Siti Admin',
         email: 'siti@pijar.com',
-        role: 'supervisor',
-        username: 'siti_sup',
-        emailVerified: true,
-        isAnonymous: false,
+        role: 'admin',
+        password: 'admin123',
+        emailVerified: new Date(),
       },
       {
         id: 'user-3',
-        name: 'Budi Manager',
+        name: 'Budi Operator',
         email: 'budi@pijar.com',
-        role: 'manager',
-        username: 'budi_mgr',
-        emailVerified: true,
-        isAnonymous: false,
+        role: 'operator',
+        password: 'password123',
+        emailVerified: new Date(),
       },
     ]).returning();
 
@@ -48,8 +45,8 @@ export async function seedDatabase() {
     console.log('🏗️ Inserting projects...');
     const sampleProjects = await db.insert(projects).values([
       {
-        name: 'Gedung Perkantoran Dinas',
-        location: 'Jl. Pembangunan No. 45, Labuhanbatu Selatan',
+        name: 'Pembangunan Puskesmas Kecamatan Kotapinang',
+        location: 'Kecamatan Kotapinang',
         startDate: '2024-01-15',
         endDate: '2024-12-31',
       },
@@ -76,7 +73,7 @@ export async function seedDatabase() {
     // Insert comprehensive inventories for each project
     console.log('📦 Inserting inventories...');
     const sampleInventories = await db.insert(inventories).values([
-      // Gedung Perkantoran Dinas
+      // Pembangunan Puskesmas Kecamatan Kotapinang
       {
         projectId: sampleProjects[0].id,
         name: 'Semen Portland Tiga Roda',
@@ -217,7 +214,7 @@ export async function seedDatabase() {
     };
 
     const transactionData = [
-      // Gedung Perkantoran - Recent activity
+      // Pembangunan Puskesmas - Recent activity
       {
         projectId: sampleProjects[0].id,
         inventoryId: sampleInventories[0].id, // Semen

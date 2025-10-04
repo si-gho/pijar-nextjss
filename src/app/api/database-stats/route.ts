@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { projects, inventories, users, transactions } from '@/lib/schema';
+import { projects, inventories, user, transactions } from '@/lib/schema';
 import { sql, eq, desc } from 'drizzle-orm';
 
 export async function GET() {
@@ -8,7 +8,7 @@ export async function GET() {
     // Get basic counts
     const [projectsCount] = await db.select({ count: sql<number>`count(*)` }).from(projects);
     const [inventoriesCount] = await db.select({ count: sql<number>`count(*)` }).from(inventories);
-    const [usersCount] = await db.select({ count: sql<number>`count(*)` }).from(users);
+    const [usersCount] = await db.select({ count: sql<number>`count(*)` }).from(user);
     const [transactionsCount] = await db.select({ count: sql<number>`count(*)` }).from(transactions);
 
     // Get transaction counts by type
@@ -33,12 +33,12 @@ export async function GET() {
         createdAt: transactions.createdAt,
         material: inventories.name,
         project: projects.name,
-        user: users.name,
+        user: user.name,
       })
       .from(transactions)
       .leftJoin(inventories, eq(transactions.inventoryId, inventories.id))
       .leftJoin(projects, eq(transactions.projectId, projects.id))
-      .leftJoin(users, eq(transactions.userId, users.id))
+      .leftJoin(user, eq(transactions.userId, user.id))
       .orderBy(desc(transactions.createdAt))
       .limit(10);
 
@@ -60,15 +60,15 @@ export async function GET() {
     // Get users with transaction counts
     const usersWithStats = await db
       .select({
-        id: users.id,
-        name: users.name,
-        role: users.role,
+        id: user.id,
+        name: user.name,
+        role: user.role,
         transactionCount: sql<number>`count(${transactions.id})`,
       })
-      .from(users)
-      .leftJoin(transactions, eq(users.id, transactions.userId))
-      .groupBy(users.id)
-      .orderBy(users.name);
+      .from(user)
+      .leftJoin(transactions, eq(user.id, transactions.userId))
+      .groupBy(user.id)
+      .orderBy(user.name);
 
     return NextResponse.json({
       summary: {

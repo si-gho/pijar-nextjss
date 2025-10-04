@@ -1,12 +1,14 @@
-import { Bell, MessageSquare } from "lucide-react";
+import { Bell, MessageSquare, LogOut } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { LogoutButton } from "./LogoutButton";
 
 interface HeaderProps {
   title?: string;
 }
 
 export const Header = ({ title = "Pijar Pro" }: HeaderProps) => {
+
   return (
     <header className="bg-gradient-primary text-primary-foreground px-4 py-5 shadow-lg relative overflow-hidden">
       {/* Decorative background pattern */}
@@ -42,6 +44,14 @@ export const Header = ({ title = "Pijar Pro" }: HeaderProps) => {
           >
             <MessageSquare className="h-5 w-5" />
           </Button>
+          <LogoutButton
+            variant="ghost"
+            size="icon"
+            className="text-primary-foreground hover:bg-white/20 transition-colors"
+            showConfirmation={false}
+          >
+            <LogOut className="h-5 w-5" />
+          </LogoutButton>
         </div>
       </div>
     </header>

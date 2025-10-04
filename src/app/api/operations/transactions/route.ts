@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { transactions, inventories, projects, users } from '@/lib/schema';
+import { transactions, inventories, projects, user } from '@/lib/schema';
 import { eq, desc, and } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
@@ -21,12 +21,12 @@ export async function GET(request: NextRequest) {
         materialUnit: inventories.unit,
         project: projects.name,
         projectLocation: projects.location,
-        userName: users.name,
+        userName: user.name,
       })
       .from(transactions)
       .leftJoin(inventories, eq(transactions.inventoryId, inventories.id))
       .leftJoin(projects, eq(transactions.projectId, projects.id))
-      .leftJoin(users, eq(transactions.userId, users.id))
+      .leftJoin(user, eq(transactions.userId, user.id))
       .orderBy(desc(transactions.createdAt))
       .limit(limit);
 

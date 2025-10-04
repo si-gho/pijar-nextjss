@@ -1,6 +1,6 @@
-# Pijar Pro - Aplikasi Monitoring Material Proyek
+# Pijar Pro Pantau - Sistem Pantau Material Konstruksi
 
-Aplikasi mobile-first untuk monitoring dan pencatatan aliran material proyek bangunan di Kabupaten Labuhanbatu Selatan.
+Aplikasi web mobile-first untuk monitoring dan pencatatan aliran material konstruksi dengan authentication dan dashboard yang komprehensif.
 
 ## 🚀 Quick Start
 
@@ -8,8 +8,12 @@ Aplikasi mobile-first untuk monitoring dan pencatatan aliran material proyek ban
 # Install dependencies
 pnpm install
 
-# Setup database (lihat Database Setup di bawah)
-# Update .env.local dengan DATABASE_URL
+# Copy environment template
+cp .env.example .env
+
+# Update .env dengan database credentials Anda
+# DATABASE_URL="your_neon_database_url"
+# NEXTAUTH_SECRET="your_secret_key"
 
 # Run development server
 pnpm dev
@@ -56,12 +60,13 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 🛠️ Tech Stack
 
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js 15 (App Router)
+- **Authentication**: NextAuth.js v5
 - **Database**: Neon PostgreSQL + Drizzle ORM
 - **Styling**: Tailwind CSS
 - **UI Components**: shadcn/ui + Radix UI
 - **Icons**: Lucide React
-- **State Management**: Custom hooks + React state
+- **State Management**: React Query + Custom hooks
 - **TypeScript**: Full type safety
 - **Validation**: Zod
 - **Image Optimization**: Next.js Image + Sharp

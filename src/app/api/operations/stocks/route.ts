@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const projectId = searchParams.get('projectId');
 
     // Get inventories with calculated current stock
-    let query = db
+    const baseQuery = db
       .select({
         id: inventories.id,
         name: inventories.name,
@@ -27,11 +27,9 @@ export async function GET(request: NextRequest) {
       .leftJoin(transactions, eq(inventories.id, transactions.inventoryId))
       .groupBy(inventories.id, projects.id);
 
-    if (projectId) {
-      query = query.where(eq(inventories.projectId, parseInt(projectId)));
-    }
-
-    const result = await query;
+    const result = projectId 
+      ? await baseQuery.where(eq(inventories.projectId, parseInt(projectId)))
+      : await baseQuery;
 
     // Calculate current stock for each inventory
     const stocksWithCurrent = result.map(stock => ({

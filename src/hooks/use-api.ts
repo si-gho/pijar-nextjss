@@ -70,7 +70,7 @@ export function useApi<T>(url: string, options: UseApiOptions = { autoFetch: tru
     if (options.autoFetch && url) {
       fetchData();
     }
-  }, [fetchData, options.autoFetch]);
+  }, [fetchData, options.autoFetch, url]);
 
   return {
     ...state,

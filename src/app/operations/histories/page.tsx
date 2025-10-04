@@ -71,7 +71,14 @@ const HistoriesPage = () => {
             </Button>
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-primary" />
-              <span className="font-display font-bold text-foreground">Rabu, 15 November 2023</span>
+              <span className="font-display font-bold text-foreground">
+                {new Date().toLocaleDateString('id-ID', { 
+                  weekday: 'long', 
+                  day: 'numeric', 
+                  month: 'long', 
+                  year: 'numeric' 
+                })}
+              </span>
             </div>
             <Button variant="ghost" size="icon" className="hover:bg-primary/10">
               <ChevronRight className="h-5 w-5 text-primary" />
