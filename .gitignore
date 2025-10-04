@@ -5,6 +5,7 @@
 /.pnp
 .pnp.js
 .yarn/install-state.gz
+node_modules/
 
 # testing
 /coverage
@@ -35,4 +36,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-node_modules
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
