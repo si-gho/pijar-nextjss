@@ -151,6 +151,36 @@ All colors MUST be HSL.
   .bg-gradient-danger {
     background: var(--gradient-danger);
   }
+
+  /* Mobile-specific utilities */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  .text-truncate-mobile {
+    @apply truncate max-w-[200px] sm:max-w-none;
+  }
+
+  .mobile-safe-area {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Improved mobile form elements */
+  .mobile-input {
+    @apply h-12 sm:h-11 text-base sm:text-sm;
+  }
+
+  .mobile-select {
+    @apply h-12 sm:h-11 text-left;
+  }
+
+  .mobile-button {
+    @apply h-12 sm:h-11 text-sm;
+  }
+
+  .mobile-button-primary {
+    @apply h-14 sm:h-12 text-base font-bold touch-manipulation;
+  }
 }
 
 @keyframes fadeIn {

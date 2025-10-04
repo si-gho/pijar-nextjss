@@ -49,7 +49,11 @@ export function LogoutButton({
   const performLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await signOut({ callbackUrl: "/login" });
+      // Use relative URL to prevent localhost redirect
+      await signOut({ 
+        callbackUrl: "/login",
+        redirect: true 
+      });
     } catch (error) {
       console.error("Logout error:", error);
     } finally {

@@ -120,24 +120,24 @@ const MaterialOutPage = () => {
           <span className="text-sm font-semibold">Kembali ke Dashboard</span>
         </Link>
 
-        <Card className="p-6 shadow-lg border-danger/20 animate-fade-in">
+        <Card className="p-4 sm:p-6 shadow-lg border-danger/20 animate-fade-in">
           {/* Header Banner */}
-          <div className="mb-6 -m-6 mb-6">
-            <div className="relative h-32 overflow-hidden rounded-t-lg">
+          <div className="mb-4 -m-4 sm:-m-6 mb-4 sm:mb-6">
+            <div className="relative h-28 sm:h-32 overflow-hidden rounded-t-lg">
               <Image 
                 src={materialsSteel} 
                 alt="Material Construction"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-danger via-danger/70 to-transparent flex items-end">
-                <div className="p-5 text-danger-foreground">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="bg-danger-foreground/20 backdrop-blur-sm p-2 rounded-lg">
-                      <TrendingDown className="h-5 w-5" />
+                <div className="p-3 sm:p-5 text-danger-foreground">
+                  <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                    <div className="bg-danger-foreground/20 backdrop-blur-sm p-1.5 sm:p-2 rounded-lg">
+                      <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />
                     </div>
-                    <h2 className="font-display font-bold text-xl">Laporan Material Keluar</h2>
+                    <h2 className="font-display font-bold text-lg sm:text-xl">Laporan Material Keluar</h2>
                   </div>
-                  <p className="text-sm text-danger-foreground/90">
+                  <p className="text-xs sm:text-sm text-danger-foreground/90">
                     Catat material yang keluar dari lokasi proyek
                   </p>
                 </div>
@@ -145,17 +145,20 @@ const MaterialOutPage = () => {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             <div className="space-y-2">
               <Label htmlFor="project" className="text-sm font-semibold">Lokasi Proyek *</Label>
               <Select value={formData.projectId} onValueChange={(value) => setFormData(prev => ({ ...prev, projectId: value, inventoryId: '' }))}>
-                <SelectTrigger id="project" className="h-11 bg-background">
+                <SelectTrigger id="project" className="h-12 sm:h-11 bg-background text-left">
                   <SelectValue placeholder="Pilih lokasi proyek" />
                 </SelectTrigger>
-                <SelectContent className="bg-card">
+                <SelectContent className="bg-card max-h-60">
                   {projects?.map(project => (
-                    <SelectItem key={project.id} value={project.id.toString()}>
-                      {project.name} - {project.location}
+                    <SelectItem key={project.id} value={project.id.toString()} className="py-3">
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium text-sm">{project.name}</span>
+                        <span className="text-xs text-muted-foreground truncate max-w-[250px]">{project.location}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -172,20 +175,25 @@ const MaterialOutPage = () => {
                   unit: selectedInventory?.unit || ''
                 }));
               }}>
-                <SelectTrigger id="material" className="h-11 bg-background">
+                <SelectTrigger id="material" className="h-12 sm:h-11 bg-background text-left">
                   <SelectValue placeholder="Pilih jenis material" />
                 </SelectTrigger>
-                <SelectContent className="bg-card">
+                <SelectContent className="bg-card max-h-60">
                   {inventories?.filter(inventory => {
                     const stock = getAvailableStock(inventory.id.toString());
                     return stock > 0;
                   }).map(inventory => (
-                    <SelectItem key={inventory.id} value={inventory.id.toString()}>
-                      {inventory.name} (Stok: {getAvailableStock(inventory.id.toString())})
+                    <SelectItem key={inventory.id} value={inventory.id.toString()} className="py-3">
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium text-sm">{inventory.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          Stok: {getAvailableStock(inventory.id.toString())} {inventory.unit}
+                        </span>
+                      </div>
                     </SelectItem>
                   ))}
                   {inventories?.filter(inventory => getAvailableStock(inventory.id.toString()) > 0).length === 0 && (
-                    <div className="p-2 text-center text-sm text-muted-foreground">
+                    <div className="p-3 text-center text-sm text-muted-foreground bg-muted/50 rounded-md m-2">
                       Tidak ada material dengan stok tersedia
                     </div>
                   )}
@@ -193,7 +201,7 @@ const MaterialOutPage = () => {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="quantity" className="text-sm font-semibold">Jumlah *</Label>
                 <Input 
@@ -203,10 +211,11 @@ const MaterialOutPage = () => {
                   value={formData.quantity}
                   onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
                   max={getAvailableStock(formData.inventoryId)}
-                  className="h-11 bg-background"
+                  className="h-12 sm:h-11 bg-background text-base sm:text-sm"
+                  inputMode="numeric"
                 />
                 {formData.inventoryId && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-md">
                     Stok tersedia: {getAvailableStock(formData.inventoryId)} {formData.unit}
                   </p>
                 )}
@@ -218,7 +227,7 @@ const MaterialOutPage = () => {
                   value={formData.unit}
                   readOnly
                   placeholder="Pilih material dulu"
-                  className="h-11 bg-background"
+                  className="h-12 sm:h-11 bg-background text-base sm:text-sm"
                 />
               </div>
             </div>
@@ -228,7 +237,7 @@ const MaterialOutPage = () => {
               <Input 
                 id="destination" 
                 placeholder="Tujuan penggunaan (opsional)" 
-                className="h-11 bg-background"
+                className="h-12 sm:h-11 bg-background text-base sm:text-sm"
               />
             </div>
 
@@ -237,7 +246,7 @@ const MaterialOutPage = () => {
               <Input 
                 id="recipient" 
                 placeholder="Nama penerima (opsional)" 
-                className="h-11 bg-background"
+                className="h-12 sm:h-11 bg-background text-base sm:text-sm"
               />
             </div>
 
@@ -249,36 +258,38 @@ const MaterialOutPage = () => {
                 value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                 rows={3}
-                className="resize-none bg-background"
+                className="resize-none bg-background text-base sm:text-sm min-h-[80px]"
               />
             </div>
 
             <div className="space-y-3 pt-3 border-t border-border">
               <p className="text-xs text-muted-foreground font-medium">Dokumentasi</p>
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full h-12 hover:bg-danger-light hover:border-danger hover:text-danger transition-colors"
-              >
-                <Camera className="h-5 w-5 mr-2" />
-                Ambil Foto Material
-              </Button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full h-12 hover:bg-danger-light hover:border-danger hover:text-danger transition-colors text-sm"
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Ambil Foto Material
+                </Button>
 
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full h-12 hover:bg-danger-light hover:border-danger hover:text-danger transition-colors"
-              >
-                <MapPin className="h-5 w-5 mr-2" />
-                Tandai Lokasi GPS
-              </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full h-12 hover:bg-danger-light hover:border-danger hover:text-danger transition-colors text-sm"
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Tandai Lokasi GPS
+                </Button>
+              </div>
             </div>
 
-            <div className="pt-6">
+            <div className="pt-4 sm:pt-6">
               <Button 
                 type="submit" 
                 disabled={loading}
-                className="w-full h-12 bg-gradient-danger text-base font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                className="w-full h-14 sm:h-12 bg-gradient-danger text-base font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 touch-manipulation"
               >
                 {loading ? 'Menyimpan...' : 'Simpan Laporan Material Keluar'}
               </Button>

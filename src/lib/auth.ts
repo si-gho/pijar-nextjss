@@ -9,6 +9,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   debug: process.env.NODE_ENV === "development",
   secret: process.env.NEXTAUTH_SECRET || "your-secret-key-here-change-in-production",
   adapter: DrizzleAdapter(db),
+  trustHost: true, // Allow dynamic host detection
   providers: [
     CredentialsProvider({
       name: "credentials",
