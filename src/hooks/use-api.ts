@@ -66,6 +66,33 @@ export function useApi<T>(url: string, options: UseApiOptions = { autoFetch: tru
     }
   }, [url]);
 
+  const deleteData = useCallback(async () => {
+    if (!url) return;
+    
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    
+    try {
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setState({ data, loading: false, error: null });
+      return data;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      setState(prev => ({ ...prev, loading: false, error: errorMessage }));
+      throw error;
+    }
+  }, [url]);
+
   useEffect(() => {
     if (options.autoFetch && url) {
       fetchData();
@@ -76,5 +103,6 @@ export function useApi<T>(url: string, options: UseApiOptions = { autoFetch: tru
     ...state,
     refetch: fetchData,
     postData,
+    deleteData,
   };
 }

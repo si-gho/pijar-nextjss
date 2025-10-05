@@ -122,7 +122,7 @@ const LoginForm = () => {
             <User className="h-8 w-8 text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-display font-bold text-foreground">
-            Pijar Pro Pantau
+            PIJAR PRO
           </h1>
           <p className="text-sm text-muted-foreground">
             Masuk ke sistem pantau material konstruksi
@@ -204,7 +204,7 @@ const LoginForm = () => {
         {/* Footer */}
         <div className="text-center">
           <p className="text-xs text-muted-foreground">
-            © 2024 Pijar Pro Pantau. Sistem Pantau Material Konstruksi.
+            © 2025 PIJAR PRO. Sistem Pantau Material Konstruksi.
           </p>
         </div>
       </div>

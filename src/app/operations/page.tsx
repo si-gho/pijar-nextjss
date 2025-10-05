@@ -9,9 +9,10 @@ import Image from "next/image";
 import constructionSite1 from "@/assets/construction-site-1.jpg";
 import constructionSite2 from "@/assets/construction-site-2.jpg";
 import { useApi } from "@/hooks/use-api";
-import { useSession } from "next-auth/react";
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { NoProjectsEmpty } from "@/components/EmptyStates";
 
 interface Project {
   id: number;
@@ -27,10 +28,22 @@ interface Transaction {
   createdAt: string;
 }
 
+interface TransactionResponse {
+  items: Transaction[];
+  pagination: {
+    page: number;
+    limit: number;
+    hasMore: boolean;
+  };
+}
+
 export default function OperationsPage() {
   const { user, isLoading } = useAuth();
   const { data: projects } = useApi<Project[]>("/api/operations/projects");
-  const { data: transactions } = useApi<Transaction[]>("/api/operations/transactions");
+  const { data: transactionResponse } = useApi<TransactionResponse>("/api/operations/transactions");
+  
+  // Extract transactions from the response
+  const transactions = transactionResponse?.items;
 
   const [todayStats, setTodayStats] = useState({
     totalTransactions: 0,
@@ -40,7 +53,7 @@ export default function OperationsPage() {
   const isAdmin = user?.role === "admin";
 
   useEffect(() => {
-    if (transactions && projects) {
+    if (transactions && Array.isArray(transactions) && projects && Array.isArray(projects)) {
       // Menghitung transaksi hari ini berdasarkan tanggal
       const today = new Date();
       const todayString = today.toLocaleDateString('id-ID', { 
@@ -209,7 +222,7 @@ export default function OperationsPage() {
           </div>
 
           <div className="space-y-4">
-            {projects && projects.length > 0 ? (
+            {projects && Array.isArray(projects) && projects.length > 0 ? (
               projects.map((project, index) => (
                 <Card key={project.id} className="overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border-0 group">
                   <div className="relative h-40 overflow-hidden">
@@ -237,12 +250,7 @@ export default function OperationsPage() {
                 </Card>
               ))
             ) : (
-              <Card className="p-8 text-center">
-                <div className="text-muted-foreground">
-                  <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">Belum ada proyek aktif</p>
-                </div>
-              </Card>
+              <NoProjectsEmpty onRefresh={() => window.location.reload()} />
             )}
           </div>
         </div>

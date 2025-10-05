@@ -7,7 +7,7 @@ interface HeaderProps {
   title?: string;
 }
 
-export const Header = ({ title = "Pijar Pro" }: HeaderProps) => {
+export const Header = ({ title = "PIJAR PRO" }: HeaderProps) => {
 
   return (
     <header className="bg-gradient-primary text-primary-foreground px-4 py-5 shadow-lg relative overflow-hidden">
@@ -21,7 +21,7 @@ export const Header = ({ title = "Pijar Pro" }: HeaderProps) => {
         <div>
           <h1 className="text-2xl font-display font-bold tracking-tight">{title}</h1>
           <p className="text-xs text-primary-foreground/80 mt-0.5 font-medium">
-            Kabupaten Labuhanbatu Selatan
+            Sistem Pantau Material Konstruksi
           </p>
         </div>
         <div className="flex gap-2">

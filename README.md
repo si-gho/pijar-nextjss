@@ -1,4 +1,4 @@
-# Pijar Pro Pantau - Sistem Pantau Material Konstruksi
+# PIJAR PRO - Sistem Pantau Material Konstruksi
 
 Aplikasi web mobile-first untuk monitoring dan pencatatan aliran material konstruksi dengan authentication dan dashboard yang komprehensif. Dibangun dengan arsitektur modular yang mendukung pengembangan lanjutan dan reusability untuk berbagai domain bisnis.
 
@@ -220,7 +220,7 @@ NEXTAUTH_SECRET="your_strong_secret_key_here"
 NEXTAUTH_URL="http://localhost:3000"
 
 # App Configuration
-NEXT_PUBLIC_APP_NAME="Pijar Pro Pantau"
+NEXT_PUBLIC_APP_NAME="PIJAR PRO"
 NEXT_PUBLIC_APP_VERSION="1.0.0"
 
 # Optional: Feature Flags

@@ -7,7 +7,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type'); // 'in', 'out', or null for all
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const offset = (page - 1) * limit;
 
     const baseQuery = db
       .select({
@@ -28,13 +30,22 @@ export async function GET(request: NextRequest) {
       .leftJoin(projects, eq(transactions.projectId, projects.id))
       .leftJoin(user, eq(transactions.userId, user.id))
       .orderBy(desc(transactions.createdAt))
-      .limit(limit);
+      .limit(limit)
+      .offset(offset);
 
     const result = type && (type === 'in' || type === 'out')
       ? await baseQuery.where(eq(transactions.type, type))
       : await baseQuery;
 
-    return NextResponse.json(result);
+    // Return paginated response
+    return NextResponse.json({
+      items: result,
+      pagination: {
+        page,
+        limit,
+        hasMore: result.length === limit
+      }
+    });
   } catch (error) {
     console.error('Error fetching transactions:', error);
     return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 });

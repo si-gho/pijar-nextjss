@@ -135,7 +135,7 @@ const UsersPage = () => {
             
             <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
               <MapPin className="h-3.5 w-3.5" />
-              <span>Labuhanbatu Selatan</span>
+              <span>Indonesia</span>
             </div>
 
             <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
@@ -151,7 +151,7 @@ const UsersPage = () => {
             
             <div className="flex gap-2 mt-4 flex-wrap justify-center">
               <Badge className="bg-primary/10 text-primary border-primary/20 font-semibold">
-                Puskesmas Kotapinang
+                Operator Aktif
               </Badge>
               <Badge className="bg-secondary/10 text-secondary border-secondary/20 font-semibold">
                 Jembatan Sungai

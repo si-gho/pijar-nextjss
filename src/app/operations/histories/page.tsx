@@ -5,14 +5,16 @@ import { BottomNav } from "@/components/BottomNav";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowDownCircle, ArrowUpCircle, ChevronLeft, ChevronRight, Filter, Calendar } from "lucide-react";
-import { useApi } from "@/hooks/use-api";
+import { ArrowDownCircle, ArrowUpCircle, Filter } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { InfiniteScrollContainer } from "@/components/InfiniteScrollContainer";
 import { ExportButton } from "@/components/ExportButton";
 import { DateRangeSelector } from "@/components/DateRangeSelector";
 import { SwipeableTransactionCard } from "@/components/SwipeableTransactionCard";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
+import { NoTransactionsEmpty, NoSearchResultsEmpty, NoInTransactionsEmpty, NoOutTransactionsEmpty } from "@/components/EmptyStates";
 
 interface Transaction {
   id: number;
@@ -28,8 +30,41 @@ interface Transaction {
   userName: string;
 }
 
+// Helper function to get user-friendly error messages
+const getErrorMessage = (error: string) => {
+  if (!error) return '';
+  
+  const errorLower = error.toLowerCase();
+  
+  if (errorLower.includes('network') || errorLower.includes('fetch')) {
+    return 'Koneksi internet bermasalah. Periksa koneksi Anda dan coba lagi.';
+  }
+  
+  if (errorLower.includes('timeout')) {
+    return 'Permintaan memakan waktu terlalu lama. Coba lagi dalam beberapa saat.';
+  }
+  
+  if (errorLower.includes('500') || errorLower.includes('internal server')) {
+    return 'Terjadi gangguan pada server. Tim teknis sedang menangani masalah ini.';
+  }
+  
+  if (errorLower.includes('404') || errorLower.includes('not found')) {
+    return 'Data tidak ditemukan. Silakan refresh halaman atau hubungi admin.';
+  }
+  
+  if (errorLower.includes('401') || errorLower.includes('unauthorized')) {
+    return 'Sesi Anda telah berakhir. Silakan login kembali.';
+  }
+  
+  if (errorLower.includes('403') || errorLower.includes('forbidden')) {
+    return 'Anda tidak memiliki akses untuk melihat data ini.';
+  }
+  
+  // Default fallback message
+  return 'Terjadi kesalahan saat memuat data. Silakan coba lagi atau hubungi admin jika masalah berlanjut.';
+};
+
 const HistoriesPage = () => {
-  const { data: transactions, loading, error } = useApi<Transaction[]>('/api/operations/transactions');
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState<{ start: Date, end: Date, label: string }>({
     start: new Date(),
@@ -40,6 +75,18 @@ const HistoriesPage = () => {
       month: 'long',
       year: 'numeric'
     })
+  });
+
+  // Use infinite scroll hook
+  const {
+    items: transactions,
+    loading,
+    hasMore,
+    error,
+    loadingRef,
+    refresh
+  } = useInfiniteScroll<Transaction>('/api/operations/transactions', {
+    pageSize: 15 // Load 15 items at a time for smooth scrolling
   });
 
   // Filter transaksi berdasarkan pencarian dan tanggal
@@ -94,21 +141,7 @@ const HistoriesPage = () => {
     console.log('Delete transaction:', transaction);
   };
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('id-ID', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Asia/Jakarta'
-    }) + ' WIB';
-  };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -179,7 +212,15 @@ const HistoriesPage = () => {
         {/* Error Message */}
         {error && (
           <Card className="p-4 bg-destructive/10 border-destructive/20">
-            <p className="text-sm text-destructive">Error: {error}</p>
+            <div className="flex items-start gap-3">
+              <div className="bg-destructive/20 p-2 rounded-lg flex-shrink-0">
+                <ArrowDownCircle className="h-4 w-4 text-destructive" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-destructive mb-1">Gagal Memuat Data</p>
+                <p className="text-xs text-destructive/80">{getErrorMessage(error)}</p>
+              </div>
+            </div>
           </Card>
         )}
 
@@ -205,13 +246,27 @@ const HistoriesPage = () => {
             </div>
           </div>
 
-          <TabsContent value="all" className="space-y-3 mt-4">
-            {loading ? (
-              <Card className="p-6 text-center">
-                <p className="text-muted-foreground">Memuat data...</p>
-              </Card>
-            ) : filteredTransactions && filteredTransactions.length > 0 ? (
-              filteredTransactions.map((item, index) => (
+          <TabsContent value="all" className="mt-4">
+            <InfiniteScrollContainer
+              items={filteredTransactions}
+              loading={loading}
+              hasMore={hasMore}
+              error={error}
+              loadingRef={loadingRef}
+              onRefresh={refresh}
+              skeletonType="transaction"
+              skeletonCount={5}
+              emptyComponent={
+                searchQuery ? (
+                  <NoSearchResultsEmpty 
+                    searchQuery={searchQuery} 
+                    onClearSearch={() => setSearchQuery("")} 
+                  />
+                ) : (
+                  <NoTransactionsEmpty onRefresh={refresh} />
+                )
+              }
+              renderItem={(item, index) => (
                 <SwipeableTransactionCard
                   key={item.id}
                   transaction={item}
@@ -219,44 +274,54 @@ const HistoriesPage = () => {
                   onEdit={handleEditTransaction}
                   onDelete={handleDeleteTransaction}
                 />
-              ))
-            ) : searchQuery ? (
-              <Card className="p-6 text-center">
-                <Search className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-                <p className="text-muted-foreground font-medium">Tidak ditemukan</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Coba kata kunci lain atau hapus filter pencarian
-                </p>
-              </Card>
-            ) : (
-              <Card className="p-6 text-center">
-                <p className="text-muted-foreground">Belum ada transaksi</p>
-              </Card>
-            )}
+              )}
+            />
           </TabsContent>
 
-          <TabsContent value="in" className="space-y-3 mt-4">
-            {filteredTransactions?.filter(h => h.type === "in").map((item, index) => (
-              <SwipeableTransactionCard
-                key={item.id}
-                transaction={item}
-                index={index}
-                onEdit={handleEditTransaction}
-                onDelete={handleDeleteTransaction}
-              />
-            ))}
+          <TabsContent value="in" className="mt-4">
+            <InfiniteScrollContainer
+              items={filteredTransactions.filter(h => h.type === "in")}
+              loading={loading}
+              hasMore={hasMore}
+              error={error}
+              loadingRef={loadingRef}
+              onRefresh={refresh}
+              skeletonType="transaction"
+              skeletonCount={5}
+              emptyComponent={<NoInTransactionsEmpty onRefresh={refresh} />}
+              renderItem={(item, index) => (
+                <SwipeableTransactionCard
+                  key={item.id}
+                  transaction={item}
+                  index={index}
+                  onEdit={handleEditTransaction}
+                  onDelete={handleDeleteTransaction}
+                />
+              )}
+            />
           </TabsContent>
 
-          <TabsContent value="out" className="space-y-3 mt-4">
-            {filteredTransactions?.filter(h => h.type === "out").map((item, index) => (
-              <SwipeableTransactionCard
-                key={item.id}
-                transaction={item}
-                index={index}
-                onEdit={handleEditTransaction}
-                onDelete={handleDeleteTransaction}
-              />
-            ))}
+          <TabsContent value="out" className="mt-4">
+            <InfiniteScrollContainer
+              items={filteredTransactions.filter(h => h.type === "out")}
+              loading={loading}
+              hasMore={hasMore}
+              error={error}
+              loadingRef={loadingRef}
+              onRefresh={refresh}
+              skeletonType="transaction"
+              skeletonCount={5}
+              emptyComponent={<NoOutTransactionsEmpty onRefresh={refresh} />}
+              renderItem={(item, index) => (
+                <SwipeableTransactionCard
+                  key={item.id}
+                  transaction={item}
+                  index={index}
+                  onEdit={handleEditTransaction}
+                  onDelete={handleDeleteTransaction}
+                />
+              )}
+            />
           </TabsContent>
         </Tabs>
       </div>

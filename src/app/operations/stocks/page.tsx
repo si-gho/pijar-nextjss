@@ -6,10 +6,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Package, MapPin, Filter, AlertTriangle } from "lucide-react";
+import { MapPin, Filter, AlertTriangle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useApi } from "@/hooks/use-api";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { SwipeableStockCard } from "@/components/SwipeableStockCard";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { InfiniteScrollContainer } from "@/components/InfiniteScrollContainer";
+import { StockSummarySkeleton } from "@/components/SkeletonLoaders";
+import { NoStocksEmpty } from "@/components/EmptyStates";
 
 interface Project {
   id: number;
@@ -34,9 +39,26 @@ interface Stock {
 const StocksPage = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   const { data: projects } = useApi<Project[]>('/api/operations/projects');
-  const { data: stocks, loading } = useApi<Stock[]>(
-    `/api/operations/stocks${selectedProjectId && selectedProjectId !== 'all' ? `?projectId=${selectedProjectId}` : ''}`
+  
+  // Use infinite scroll for stocks
+  const {
+    items: stocks,
+    loading,
+    hasMore,
+    error,
+    loadingRef,
+    refresh
+  } = useInfiniteScroll<Stock>(
+    `/api/operations/stocks${selectedProjectId && selectedProjectId !== 'all' ? `?projectId=${selectedProjectId}` : ''}`,
+    {
+      pageSize: 10 // Smaller page size for stocks
+    }
   );
+
+  // Refresh infinite scroll when project selection changes
+  useEffect(() => {
+    refresh();
+  }, [selectedProjectId, refresh]);
 
   const stocksWithStatus = useMemo(() => {
     if (!stocks) return [];
@@ -62,6 +84,16 @@ const StocksPage = () => {
       };
     });
   }, [stocks]);
+
+  const handleEditStock = (stock: any) => {
+    // TODO: Implement edit stock functionality
+    console.log('Edit stock:', stock);
+  };
+
+  const handleStockSettings = (stock: any) => {
+    // TODO: Implement stock settings functionality
+    console.log('Stock settings:', stock);
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -105,7 +137,18 @@ const StocksPage = () => {
             </Badge>
           </div>
           {loading ? (
-            <p className="text-center text-muted-foreground py-8">Memuat data...</p>
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex justify-between">
+                    <div className="h-4 bg-muted animate-pulse rounded w-24"></div>
+                    <div className="h-4 bg-muted animate-pulse rounded w-16"></div>
+                  </div>
+                  <div className="h-3 bg-muted animate-pulse rounded w-full"></div>
+                  <div className="h-3 bg-muted animate-pulse rounded w-20"></div>
+                </div>
+              ))}
+            </div>
           ) : stocksWithStatus.length > 0 ? (
             <div className="space-y-4 sm:space-y-5">
               {stocksWithStatus.slice(0, 3).map((stock) => (
@@ -143,77 +186,26 @@ const StocksPage = () => {
             </Button>
           </div>
 
-          <div className="space-y-3">
-            {loading ? (
-              <Card className="p-6 text-center">
-                <p className="text-muted-foreground">Memuat data...</p>
-              </Card>
-            ) : stocksWithStatus.length > 0 ? (
-              stocksWithStatus.map((stock, index) => {
-                const getStatusColor = () => {
-                  if (stock.statusColor === "danger") return "bg-danger/10 text-danger border-danger/20";
-                  if (stock.statusColor === "warning") return "bg-primary/10 text-primary border-primary/20";
-                  return "bg-success/10 text-success border-success/20";
-                };
-
-                return (
-                  <Card
-                    key={stock.id}
-                    className="p-4 sm:p-5 shadow-md hover:shadow-lg transition-all duration-300 group animate-fade-in"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <div className="flex gap-3 sm:gap-4">
-                      <div className="bg-gradient-to-br from-primary/20 to-primary/5 p-3 sm:p-4 rounded-2xl h-fit group-hover:scale-110 transition-transform duration-300">
-                        <Package className="h-5 w-5 sm:h-7 sm:w-7 text-primary" />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1 min-w-0 mr-3">
-                            <h4 className="font-display font-bold text-foreground text-sm sm:text-base truncate">{stock.name}</h4>
-                            <p className="text-xs text-muted-foreground mt-1">{stock.unit}</p>
-                            <p className="text-xs text-muted-foreground truncate">{stock.projectName}</p>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <span className="font-display font-bold text-foreground text-base sm:text-lg">
-                              {stock.currentStock}
-                            </span>
-                            <span className="text-xs text-muted-foreground ml-1">
-                              / {stock.totalCapacity}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="mb-3">
-                          <Progress value={stock.percentage} className="h-2.5 sm:h-2 bg-muted" />
-                        </div>
-
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className={`text-xs font-semibold ${getStatusColor()}`}>
-                              {stock.status}
-                            </Badge>
-                          </div>
-                          <Button variant="link" className="h-auto p-0 text-xs text-primary font-semibold hover:underline">
-                            Detail →
-                          </Button>
-                        </div>
-
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Masuk: {stock.stockIn}</span>
-                          <span>Keluar: {stock.stockOut}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })
-            ) : (
-              <Card className="p-6 text-center">
-                <p className="text-muted-foreground">Tidak ada data stok</p>
-              </Card>
+          <InfiniteScrollContainer
+            items={stocksWithStatus}
+            loading={loading}
+            hasMore={hasMore}
+            error={error}
+            loadingRef={loadingRef}
+            onRefresh={refresh}
+            skeletonType="stock"
+            skeletonCount={4}
+            emptyComponent={<NoStocksEmpty onRefresh={refresh} />}
+            renderItem={(stock, index) => (
+              <SwipeableStockCard
+                key={stock.id}
+                stock={stock}
+                index={index}
+                onEdit={handleEditStock}
+                onSettings={handleStockSettings}
+              />
             )}
-          </div>
+          />
         </div>
       </div>
 

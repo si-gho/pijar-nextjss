@@ -6,7 +6,7 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Pijar Pro Pantau",
+  title: "PIJAR PRO",
   description: "Sistem Pantau Material Konstruksi",
 };
 

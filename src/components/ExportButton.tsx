@@ -4,8 +4,10 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, FileText, Calendar, Loader2, X } from "lucide-react";
+import { Download, FileText, Calendar, Loader2, X, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { pdf } from '@react-pdf/renderer';
+import { PDFReport } from './PDFReport';
 
 interface Transaction {
   id: number;
@@ -26,9 +28,10 @@ interface ExportButtonProps {
 export function ExportButton({ transactions }: ExportButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [exportType, setExportType] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [exportFormat, setExportFormat] = useState<'html' | 'pdf'>('pdf');
   const [isExporting, setIsExporting] = useState(false);
 
-  const generateReport = () => {
+  const generateReport = async () => {
     if (!transactions || transactions.length === 0) {
       toast.error("Tidak ada data untuk diekspor");
       return;
@@ -100,22 +103,38 @@ export function ExportButton({ transactions }: ExportButtonProps) {
         return;
       }
 
-      // Generate HTML content
-      const htmlContent = generateHTMLReport(filteredTransactions, periodLabel);
-      
-      // Create and download file
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Laporan-Transaksi-${exportType}-${now.toISOString().split('T')[0]}.html`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      if (exportFormat === 'pdf') {
+        // Generate PDF
+        const pdfDoc = <PDFReport transactions={filteredTransactions} period={periodLabel} />;
+        const blob = await pdf(pdfDoc).toBlob();
+        
+        // Create and download file
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Laporan-Transaksi-${exportType}-${now.toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        // Generate HTML content
+        const htmlContent = generateHTMLReport(filteredTransactions, periodLabel);
+        
+        // Create and download file
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Laporan-Transaksi-${exportType}-${now.toISOString().split('T')[0]}.html`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
 
       toast.success("Laporan berhasil diekspor!", {
-        description: `${filteredTransactions.length} transaksi telah diekspor`
+        description: `${filteredTransactions.length} transaksi telah diekspor sebagai ${exportFormat.toUpperCase()}`
       });
 
       setIsOpen(false);
@@ -160,7 +179,7 @@ export function ExportButton({ transactions }: ExportButtonProps) {
 <body>
     <div class="header">
         <h1>Laporan Transaksi Material</h1>
-        <h2>Pijar Pro Pantau</h2>
+        <h2>PIJAR PRO</h2>
         <p><strong>Periode:</strong> ${period}</p>
         <p><strong>Digenerate:</strong> ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB</p>
     </div>
@@ -205,8 +224,8 @@ export function ExportButton({ transactions }: ExportButtonProps) {
     </table>
 
     <div class="footer">
-        <p>Laporan ini digenerate otomatis oleh sistem Pijar Pro Pantau</p>
-        <p>© 2024 Pijar Pro Pantau - Sistem Pantau Material Konstruksi</p>
+        <p>Laporan ini digenerate otomatis oleh sistem PIJAR PRO</p>
+        <p>© 2025 PIJAR PRO - Sistem Pantau Material Konstruksi</p>
     </div>
 </body>
 </html>`;
@@ -271,6 +290,29 @@ export function ExportButton({ transactions }: ExportButtonProps) {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Format Export</label>
+                <Select value={exportFormat} onValueChange={(value: 'html' | 'pdf') => setExportFormat(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pdf">
+                      <div className="flex items-center gap-2">
+                        <FileDown className="h-4 w-4" />
+                        PDF (Recommended)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="html">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        HTML
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               
               <div className="flex justify-end gap-2 pt-4">
                 <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isExporting}>
@@ -285,7 +327,7 @@ export function ExportButton({ transactions }: ExportButtonProps) {
                   ) : (
                     <>
                       <Download className="h-4 w-4 mr-2" />
-                      Export HTML
+                      Export {exportFormat.toUpperCase()}
                     </>
                   )}
                 </Button>

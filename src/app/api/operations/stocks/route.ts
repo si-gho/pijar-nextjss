@@ -7,6 +7,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const offset = (page - 1) * limit;
 
     // Get inventories with calculated current stock
     const baseQuery = db
@@ -25,7 +28,9 @@ export async function GET(request: NextRequest) {
       .from(inventories)
       .leftJoin(projects, eq(inventories.projectId, projects.id))
       .leftJoin(transactions, eq(inventories.id, transactions.inventoryId))
-      .groupBy(inventories.id, projects.id);
+      .groupBy(inventories.id, projects.id)
+      .limit(limit)
+      .offset(offset);
 
     const result = projectId 
       ? await baseQuery.where(eq(inventories.projectId, parseInt(projectId)))
@@ -38,7 +43,15 @@ export async function GET(request: NextRequest) {
       totalCapacity: Number(stock.initialStock) + Number(stock.stockIn), // For percentage calculation
     }));
 
-    return NextResponse.json(stocksWithCurrent);
+    // Return paginated response
+    return NextResponse.json({
+      items: stocksWithCurrent,
+      pagination: {
+        page,
+        limit,
+        hasMore: stocksWithCurrent.length === limit
+      }
+    });
   } catch (error) {
     console.error('Error fetching stocks:', error);
     return NextResponse.json({ error: 'Failed to fetch stocks' }, { status: 500 });

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Camera, MapPin, Package } from "lucide-react";
 import Link from "next/link";
@@ -14,8 +15,10 @@ import Image from "next/image";
 import { toast } from "sonner";
 import materialsCement from "@/assets/materials-cement.jpg";
 import { useApi } from "@/hooks/use-api";
-import { useState } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { AddMaterialDialog } from "@/components/AddMaterialDialog";
+import { DeleteMaterialConfirmation } from "@/components/DeleteMaterialButton";
+import { MaterialSelector } from "@/components/MaterialSelector";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -31,6 +34,7 @@ interface Inventory {
   unit: string;
   projectId: number;
   projectName: string;
+  initialStock?: string;
 }
 
 const MaterialInPage = () => {
@@ -44,12 +48,68 @@ const MaterialInPage = () => {
     notes: '',
   });
 
-  const { data: projects, loading: projectsLoading, error: projectsError, refetch: refetchProjects } = useApi<Project[]>('/api/operations/projects');
-  const { data: inventories, loading: inventoriesLoading, error: inventoriesError, refetch: fetchInventories } = useApi<Inventory[]>(
+  // State for handling newly added material
+  const [newlyAddedMaterial, setNewlyAddedMaterial] = useState<Inventory | null>(null);
+  
+  // State for delete confirmation dialog
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    materialId: string;
+    materialName: string;
+    materialData?: any;
+  }>({
+    isOpen: false,
+    materialId: '',
+    materialName: '',
+    materialData: undefined
+  });
+  
+  // Ref for quantity input auto-focus
+  const quantityInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: projects, loading: projectsLoading } = useApi<Project[]>('/api/operations/projects');
+  const { data: inventories, loading: inventoriesLoading, refetch: fetchInventories } = useApi<Inventory[]>(
     formData.projectId ? `/api/operations/inventories?projectId=${formData.projectId}` : '',
     { autoFetch: !!formData.projectId }
   );
+  const { data: stocksResponse, loading: stocksLoading } = useApi<{items: any[], pagination: any}>(
+    formData.projectId ? `/api/operations/stocks?projectId=${formData.projectId}` : '',
+    { autoFetch: !!formData.projectId }
+  );
   const { postData, loading } = useApi('/api/operations/transactions', { autoFetch: false });
+
+  // Combine inventories with stock data
+  const materialsWithStock = useMemo(() => {
+    if (!inventories || !stocksResponse?.items) return inventories || [];
+    
+    return inventories.map(inventory => {
+      const stock = stocksResponse.items.find(s => s.id === inventory.id);
+      return {
+        ...inventory,
+        currentStock: stock?.currentStock ?? (inventory.initialStock ? parseInt(inventory.initialStock) : 0)
+      };
+    });
+  }, [inventories, stocksResponse]);
+
+  // Handle newly added material auto-selection and focus
+  useEffect(() => {
+    if (newlyAddedMaterial && inventories) {
+      // Auto-select the newly added material
+      setFormData(prev => ({
+        ...prev,
+        inventoryId: newlyAddedMaterial.id.toString(),
+        unit: newlyAddedMaterial.unit
+      }));
+
+      // Focus on quantity input after a short delay
+      setTimeout(() => {
+        quantityInputRef.current?.focus();
+      }, 100);
+
+      // Clear the newly added material state
+      setNewlyAddedMaterial(null);
+    }
+  }, [newlyAddedMaterial, inventories]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,48 +262,49 @@ const MaterialInPage = () => {
             <div className="space-y-2">
               <Label htmlFor="material" className="text-sm font-semibold">Jenis Material *</Label>
               <div className="flex gap-2">
-                {formData.projectId && inventoriesLoading ? (
+                {formData.projectId && (inventoriesLoading || stocksLoading) ? (
                   <div className="flex-1 h-12 sm:h-11 flex items-center justify-center bg-background border rounded-md">
                     <LoadingSpinner size="sm" text="Memuat material..." />
                   </div>
                 ) : (
-                  <Select 
-                    value={formData.inventoryId} 
+                  <MaterialSelector
+                    materials={materialsWithStock || []}
+                    value={formData.inventoryId}
                     onValueChange={(value) => {
-                      const selectedInventory = inventories?.find(inv => inv.id.toString() === value);
+                      const selectedInventory = materialsWithStock?.find(inv => inv.id.toString() === value);
                       setFormData(prev => ({
                         ...prev,
                         inventoryId: value,
                         unit: selectedInventory?.unit || ''
                       }));
                     }}
+                    onDeleteMaterial={(materialId, materialName, materialData) => {
+                      setDeleteDialog({
+                        isOpen: true,
+                        materialId,
+                        materialName,
+                        materialData
+                      });
+                    }}
+                    placeholder={formData.projectId ? "Pilih jenis material" : "Pilih proyek terlebih dahulu"}
                     disabled={!formData.projectId}
-                  >
-                    <SelectTrigger id="material" className="h-12 sm:h-11 bg-background flex-1 text-left">
-                      <SelectValue placeholder={formData.projectId ? "Pilih jenis material" : "Pilih proyek terlebih dahulu"} />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card max-h-60">
-                      {inventories?.map(inventory => (
-                        <SelectItem key={inventory.id} value={inventory.id.toString()} className="py-3">
-                          <div className="flex flex-col items-start">
-                            <span className="font-medium text-sm">{inventory.name}</span>
-                            <span className="text-xs text-muted-foreground">Satuan: {inventory.unit}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    className="flex-1"
+                    showStock={true}
+                  />
                 )}
                 
                 {formData.projectId && !inventoriesLoading && (
                   <AddMaterialDialog 
                     projectId={formData.projectId}
-                    onMaterialAdded={() => fetchInventories()}
+                    onMaterialAdded={(newMaterial) => {
+                      fetchInventories();
+                      setNewlyAddedMaterial(newMaterial);
+                    }}
                   />
                 )}
               </div>
               
-              {formData.projectId && !inventoriesLoading && !inventoriesError && inventories?.length === 0 && (
+              {formData.projectId && !inventoriesLoading && inventories?.length === 0 && (
                 <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-md">
                   Belum ada material untuk proyek ini. Klik tombol + untuk menambah material baru.
                 </p>
@@ -254,6 +315,7 @@ const MaterialInPage = () => {
               <div className="space-y-2">
                 <Label htmlFor="quantity" className="text-sm font-semibold">Jumlah *</Label>
                 <Input
+                  ref={quantityInputRef}
                   id="quantity"
                   type="number"
                   placeholder="100"
@@ -333,6 +395,22 @@ const MaterialInPage = () => {
       </div>
 
       <BottomNav />
+
+      {/* Delete Material Confirmation Dialog */}
+      <DeleteMaterialConfirmation
+        materialId={deleteDialog.materialId}
+        materialName={deleteDialog.materialName}
+        materialData={deleteDialog.materialData}
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, materialId: '', materialName: '', materialData: undefined })}
+        onMaterialDeleted={() => {
+          fetchInventories();
+          // Clear selection if deleted material was selected
+          if (formData.inventoryId === deleteDialog.materialId) {
+            setFormData(prev => ({ ...prev, inventoryId: '', unit: '' }));
+          }
+        }}
+      />
     </div>
   );
 };

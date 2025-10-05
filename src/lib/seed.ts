@@ -47,26 +47,26 @@ export async function seedDatabase() {
       {
         name: 'Pembangunan Puskesmas Kecamatan Kotapinang',
         location: 'Kecamatan Kotapinang',
-        startDate: '2024-01-15',
-        endDate: '2024-12-31',
+        startDate: '2025-01-15',
+        endDate: '2025-12-31',
       },
       {
         name: 'Jembatan Sungai Barumun',
         location: 'Desa Sejahtera, Kec. Bilah Hilir',
-        startDate: '2024-03-01',
-        endDate: '2024-10-30',
+        startDate: '2025-03-01',
+        endDate: '2025-10-30',
       },
       {
         name: 'Jalan Raya Tol Akses',
         location: 'Km 15-25 Labuhanbatu Selatan',
-        startDate: '2024-02-01',
+        startDate: '2025-02-01',
         endDate: '2025-01-31',
       },
       {
         name: 'Sekolah Dasar Negeri 001',
         location: 'Desa Pendidikan, Kec. Kota Pinang',
-        startDate: '2024-04-01',
-        endDate: '2024-11-30',
+        startDate: '2025-04-01',
+        endDate: '2025-11-30',
       },
     ]).returning();
 

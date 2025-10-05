@@ -14,9 +14,10 @@ import Image from "next/image";
 import { toast } from "sonner";
 import materialsSteel from "@/assets/materials-steel.jpg";
 import { useApi } from "@/hooks/use-api";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { MaterialSelector } from "@/components/MaterialSelector";
 
 interface Project {
   id: number;
@@ -30,6 +31,7 @@ interface Inventory {
   unit: string;
   projectId: number;
   projectName: string;
+  initialStock?: string;
 }
 
 const MaterialOutPage = () => {
@@ -43,19 +45,38 @@ const MaterialOutPage = () => {
     notes: '',
   });
 
-  const { data: projects } = useApi<Project[]>('/api/operations/projects');
-  const { data: inventories } = useApi<Inventory[]>(
+  const { data: projects, loading: projectsLoading } = useApi<Project[]>('/api/operations/projects');
+  const { data: inventories, loading: inventoriesLoading } = useApi<Inventory[]>(
     formData.projectId ? `/api/operations/inventories?projectId=${formData.projectId}` : '',
     { autoFetch: !!formData.projectId }
   );
-  const { data: stocks } = useApi<any[]>(
+  const { data: stocksResponse, loading: stocksLoading } = useApi<{items: any[], pagination: any}>(
     formData.projectId ? `/api/operations/stocks?projectId=${formData.projectId}` : '',
     { autoFetch: !!formData.projectId }
   );
+  
+  // Extract stocks from the response
+  const stocks = stocksResponse?.items;
+
+  // Combine inventories with stock data and filter only available stock
+  const availableMaterials = useMemo(() => {
+    if (!inventories || !stocks) return [];
+    
+    return inventories
+      .map(inventory => {
+        const stock = stocks.find(s => s.id === inventory.id);
+        const currentStock = stock?.currentStock ?? (inventory.initialStock ? parseInt(inventory.initialStock) : 0);
+        return {
+          ...inventory,
+          currentStock
+        };
+      })
+      .filter(material => material.currentStock > 0); // Only show materials with stock
+  }, [inventories, stocks]);
   const { postData, loading } = useApi('/api/operations/transactions', { autoFetch: false });
 
   const getAvailableStock = (inventoryId: string) => {
-    if (!stocks || !inventoryId) return 0;
+    if (!stocks || !Array.isArray(stocks) || !inventoryId) return 0;
     const stock = stocks.find(s => s.id.toString() === inventoryId);
     return stock ? stock.currentStock : 0;
   };
@@ -171,10 +192,15 @@ const MaterialOutPage = () => {
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             <div className="space-y-2">
               <Label htmlFor="project" className="text-sm font-semibold">Lokasi Proyek *</Label>
-              <Select value={formData.projectId} onValueChange={(value) => setFormData(prev => ({ ...prev, projectId: value, inventoryId: '' }))}>
-                <SelectTrigger id="project" className="h-12 sm:h-11 bg-background text-left">
-                  <SelectValue placeholder="Pilih lokasi proyek" />
-                </SelectTrigger>
+              {projectsLoading ? (
+                <div className="h-12 sm:h-11 flex items-center justify-center bg-background border rounded-md">
+                  <LoadingSpinner size="sm" text="Memuat proyek..." />
+                </div>
+              ) : (
+                <Select value={formData.projectId} onValueChange={(value) => setFormData(prev => ({ ...prev, projectId: value, inventoryId: '' }))}>
+                  <SelectTrigger id="project" className="h-12 sm:h-11 bg-background text-left">
+                    <SelectValue placeholder="Pilih lokasi proyek" />
+                  </SelectTrigger>
                 <SelectContent className="bg-card max-h-60">
                   {projects?.map(project => (
                     <SelectItem key={project.id} value={project.id.toString()} className="py-3">
@@ -185,43 +211,37 @@ const MaterialOutPage = () => {
                     </SelectItem>
                   ))}
                 </SelectContent>
-              </Select>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="material" className="text-sm font-semibold">Jenis Material *</Label>
-              <Select value={formData.inventoryId} onValueChange={(value) => {
-                const selectedInventory = inventories?.find(inv => inv.id.toString() === value);
-                setFormData(prev => ({ 
-                  ...prev, 
-                  inventoryId: value,
-                  unit: selectedInventory?.unit || ''
-                }));
-              }}>
-                <SelectTrigger id="material" className="h-12 sm:h-11 bg-background text-left">
-                  <SelectValue placeholder="Pilih jenis material" />
-                </SelectTrigger>
-                <SelectContent className="bg-card max-h-60">
-                  {inventories?.filter(inventory => {
-                    const stock = getAvailableStock(inventory.id.toString());
-                    return stock > 0;
-                  }).map(inventory => (
-                    <SelectItem key={inventory.id} value={inventory.id.toString()} className="py-3">
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium text-sm">{inventory.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          Stok: {getAvailableStock(inventory.id.toString())} {inventory.unit}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                  {inventories?.filter(inventory => getAvailableStock(inventory.id.toString()) > 0).length === 0 && (
-                    <div className="p-3 text-center text-sm text-muted-foreground bg-muted/50 rounded-md m-2">
-                      Tidak ada material dengan stok tersedia
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
+              {formData.projectId && (inventoriesLoading || stocksLoading) ? (
+                <div className="h-12 sm:h-11 flex items-center justify-center bg-background border rounded-md">
+                  <LoadingSpinner size="sm" text="Memuat material..." />
+                </div>
+              ) : (
+                <MaterialSelector
+                  materials={availableMaterials}
+                  value={formData.inventoryId}
+                  onValueChange={(value) => {
+                    const selectedInventory = availableMaterials.find(inv => inv.id.toString() === value);
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      inventoryId: value,
+                      unit: selectedInventory?.unit || ''
+                    }));
+                  }}
+                  onDeleteMaterial={() => {}} // No delete functionality in out form
+                  placeholder={formData.projectId ? 
+                    (availableMaterials.length === 0 ? "Tidak ada material dengan stok tersedia" : "Pilih jenis material") : 
+                    "Pilih proyek terlebih dahulu"
+                  }
+                  disabled={!formData.projectId || availableMaterials.length === 0}
+                  showStock={true}
+                />
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
