@@ -10,6 +10,7 @@ import { useApi } from "@/hooks/use-api";
 import { useMemo, useState } from "react";
 import { ExportButton } from "@/components/ExportButton";
 import { DateRangeSelector } from "@/components/DateRangeSelector";
+import { SwipeableTransactionCard } from "@/components/SwipeableTransactionCard";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
 
@@ -30,21 +31,21 @@ interface Transaction {
 const HistoriesPage = () => {
   const { data: transactions, loading, error } = useApi<Transaction[]>('/api/operations/transactions');
   const [searchQuery, setSearchQuery] = useState("");
-  const [dateRange, setDateRange] = useState<{start: Date, end: Date, label: string}>({
+  const [dateRange, setDateRange] = useState<{ start: Date, end: Date, label: string }>({
     start: new Date(),
     end: new Date(),
-    label: new Date().toLocaleDateString('id-ID', { 
-      weekday: 'long', 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric' 
+    label: new Date().toLocaleDateString('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
     })
   });
 
   // Filter transaksi berdasarkan pencarian dan tanggal
   const filteredTransactions = useMemo(() => {
     if (!transactions || !Array.isArray(transactions)) return [];
-    
+
     // Filter berdasarkan date range
     let filtered = transactions.filter(t => {
       const transactionDate = new Date(t.createdAt);
@@ -52,21 +53,21 @@ const HistoriesPage = () => {
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(dateRange.end);
       endOfDay.setHours(23, 59, 59, 999);
-      
+
       return transactionDate >= startOfDay && transactionDate <= endOfDay;
     });
-    
+
     // Filter berdasarkan search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(t => 
+      filtered = filtered.filter(t =>
         t.material?.toLowerCase().includes(query) ||
         t.project?.toLowerCase().includes(query) ||
         t.notes?.toLowerCase().includes(query) ||
         t.userName?.toLowerCase().includes(query)
       );
     }
-    
+
     return filtered;
   }, [transactions, searchQuery, dateRange]);
 
@@ -81,6 +82,16 @@ const HistoriesPage = () => {
 
   const handleDateRangeChange = (start: Date, end: Date, label: string) => {
     setDateRange({ start, end, label });
+  };
+
+  const handleEditTransaction = (transaction: Transaction) => {
+    // TODO: Implement edit functionality
+    console.log('Edit transaction:', transaction);
+  };
+
+  const handleDeleteTransaction = (transaction: Transaction) => {
+    // TODO: Implement delete functionality
+    console.log('Delete transaction:', transaction);
   };
 
   const formatTime = (dateString: string) => {
@@ -201,61 +212,13 @@ const HistoriesPage = () => {
               </Card>
             ) : filteredTransactions && filteredTransactions.length > 0 ? (
               filteredTransactions.map((item, index) => (
-                <Card
+                <SwipeableTransactionCard
                   key={item.id}
-                  className={`p-4 shadow-sm hover:shadow-md transition-all duration-300 border-l-4 animate-fade-in group cursor-pointer ${
-                    item.type === "in" 
-                      ? "border-l-success/60 hover:border-l-success bg-gradient-to-r from-success/5 to-transparent hover:from-success/10" 
-                      : "border-l-danger/60 hover:border-l-danger bg-gradient-to-r from-danger/5 to-transparent hover:from-danger/10"
-                  }`}
-                  style={{ animationDelay: `${index * 0.05}s` }}
-                >
-                  <div className="flex gap-4">
-                    <div className={`p-3 rounded-xl h-fit shadow-sm transition-all group-hover:scale-105 ${
-                      item.type === "in" ? "bg-success/10 group-hover:bg-success/20" : "bg-danger/10 group-hover:bg-danger/20"
-                    }`}>
-                      {item.type === "in" ? (
-                        <ArrowDownCircle className="h-6 w-6 text-success" />
-                      ) : (
-                        <ArrowUpCircle className="h-6 w-6 text-danger" />
-                      )}
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="font-display font-bold text-foreground">
-                            {item.material}
-                          </h3>
-                          <p className="text-sm text-muted-foreground mt-0.5">
-                            {item.quantity} {item.unit}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-sm font-medium text-muted-foreground">{formatTime(item.createdAt)}</span>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {formatDate(item.createdAt)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between mt-3">
-                        <p className="text-sm text-muted-foreground">{item.project}</p>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs text-primary hover:text-primary hover:bg-primary/10">
-                          Detail
-                        </Button>
-                      </div>
-
-                      {item.notes && (
-                        <div className="mt-3 p-2 bg-muted/30 rounded-md border-l-2 border-muted-foreground/20">
-                          <p className="text-xs text-muted-foreground italic leading-relaxed">
-                            &ldquo;{item.notes}&rdquo;
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Card>
+                  transaction={item}
+                  index={index}
+                  onEdit={handleEditTransaction}
+                  onDelete={handleDeleteTransaction}
+                />
               ))
             ) : searchQuery ? (
               <Card className="p-6 text-center">
@@ -274,77 +237,25 @@ const HistoriesPage = () => {
 
           <TabsContent value="in" className="space-y-3 mt-4">
             {filteredTransactions?.filter(h => h.type === "in").map((item, index) => (
-              <Card
+              <SwipeableTransactionCard
                 key={item.id}
-                className="p-4 shadow-md hover:shadow-lg transition-all duration-300 border-l-4 border-success animate-fade-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="flex gap-4">
-                  <div className="bg-success/10 p-3 rounded-xl h-fit shadow-sm">
-                    <ArrowDownCircle className="h-6 w-6 text-success" />
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-display font-bold text-foreground">{item.material}</h3>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          {item.quantity} {item.unit}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-sm font-medium text-muted-foreground">{formatTime(item.createdAt)}</span>
-                        <p className="text-xs text-muted-foreground mt-0.5">{formatDate(item.createdAt)}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between mt-3">
-                      <p className="text-sm text-muted-foreground">{item.project}</p>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs text-primary hover:text-primary hover:bg-primary/10">
-                        Detail
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </Card>
+                transaction={item}
+                index={index}
+                onEdit={handleEditTransaction}
+                onDelete={handleDeleteTransaction}
+              />
             ))}
           </TabsContent>
 
           <TabsContent value="out" className="space-y-3 mt-4">
             {filteredTransactions?.filter(h => h.type === "out").map((item, index) => (
-              <Card
+              <SwipeableTransactionCard
                 key={item.id}
-                className="p-4 shadow-md hover:shadow-lg transition-all duration-300 border-l-4 border-danger animate-fade-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="flex gap-4">
-                  <div className="bg-danger/10 p-3 rounded-xl h-fit shadow-sm">
-                    <ArrowUpCircle className="h-6 w-6 text-danger" />
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-display font-bold text-foreground">{item.material}</h3>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          {item.quantity} {item.unit}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-sm font-medium text-muted-foreground">{formatTime(item.createdAt)}</span>
-                        <p className="text-xs text-muted-foreground mt-0.5">{formatDate(item.createdAt)}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between mt-3">
-                      <p className="text-sm text-muted-foreground">{item.project}</p>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs text-primary hover:text-primary hover:bg-primary/10">
-                        Detail
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </Card>
+                transaction={item}
+                index={index}
+                onEdit={handleEditTransaction}
+                onDelete={handleDeleteTransaction}
+              />
             ))}
           </TabsContent>
         </Tabs>
