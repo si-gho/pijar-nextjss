@@ -9,6 +9,7 @@ import { ChevronRight, User, Key, Bell, HelpCircle, LogOut, Award, MapPin, Calen
 import { Badge } from "@/components/ui/badge";
 import { useApi } from "@/hooks/use-api";
 import { LogoutButton } from "@/components/LogoutButton";
+import { DeveloperCredit } from "@/components/DeveloperCredit";
 
 const UsersPage = () => {
   const { data: userProfile, loading: profileLoading } = useApi<{
@@ -228,20 +229,8 @@ const UsersPage = () => {
           ))}
         </Card>
 
-        {/* Achievement Badge */}
-        <Card className="p-5 shadow-md bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-          <div className="flex items-center gap-4">
-            <div className="bg-primary/20 p-4 rounded-2xl">
-              <Award className="h-8 w-8 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h4 className="font-display font-bold text-foreground">Operator Teladan</h4>
-              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Anda telah mencatat {userStats?.overall.totalTransactions || 0} transaksi dengan akurasi {userStats?.overall.accuracy || 98}%
-              </p>
-            </div>
-          </div>
-        </Card>
+        {/* Advanced Developer Credit Component */}
+        <DeveloperCredit />
 
         {/* Logout Button */}
         <LogoutButton

@@ -41,7 +41,7 @@ export default function OperationsPage() {
   const { user, isLoading } = useAuth();
   const { data: projects } = useApi<Project[]>("/api/operations/projects");
   const { data: transactionResponse } = useApi<TransactionResponse>("/api/operations/transactions");
-  
+
   // Extract transactions from the response
   const transactions = transactionResponse?.items;
 
@@ -56,16 +56,16 @@ export default function OperationsPage() {
     if (transactions && Array.isArray(transactions) && projects && Array.isArray(projects)) {
       // Menghitung transaksi hari ini berdasarkan tanggal
       const today = new Date();
-      const todayString = today.toLocaleDateString('id-ID', { 
+      const todayString = today.toLocaleDateString('id-ID', {
         timeZone: 'Asia/Jakarta',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
       });
-      
+
       const todayTransactions = transactions.filter(t => {
         const transactionDate = new Date(t.createdAt);
-        const transactionString = transactionDate.toLocaleDateString('id-ID', { 
+        const transactionString = transactionDate.toLocaleDateString('id-ID', {
           timeZone: 'Asia/Jakarta',
           year: 'numeric',
           month: '2-digit',
@@ -254,6 +254,7 @@ export default function OperationsPage() {
             )}
           </div>
         </div>
+
       </div>
 
       <BottomNav />
