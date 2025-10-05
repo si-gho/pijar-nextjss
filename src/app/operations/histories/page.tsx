@@ -7,8 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ArrowDownCircle, ArrowUpCircle, ChevronLeft, ChevronRight, Filter, Calendar } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ExportButton } from "@/components/ExportButton";
+import { DateRangeSelector } from "@/components/DateRangeSelector";
+import { Input } from "@/components/ui/input";
+import { Search, X } from "lucide-react";
 
 interface Transaction {
   id: number;
@@ -26,44 +29,63 @@ interface Transaction {
 
 const HistoriesPage = () => {
   const { data: transactions, loading, error } = useApi<Transaction[]>('/api/operations/transactions');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateRange, setDateRange] = useState<{start: Date, end: Date, label: string}>({
+    start: new Date(),
+    end: new Date(),
+    label: new Date().toLocaleDateString('id-ID', { 
+      weekday: 'long', 
+      day: 'numeric', 
+      month: 'long', 
+      year: 'numeric' 
+    })
+  });
 
-  // Menghitung transaksi hari ini berdasarkan tanggal dan tipe
-  const { inCount, outCount } = useMemo(() => {
-    if (!transactions || !Array.isArray(transactions)) {
-      return { inCount: 0, outCount: 0 };
+  // Filter transaksi berdasarkan pencarian dan tanggal
+  const filteredTransactions = useMemo(() => {
+    if (!transactions || !Array.isArray(transactions)) return [];
+    
+    // Filter berdasarkan date range
+    let filtered = transactions.filter(t => {
+      const transactionDate = new Date(t.createdAt);
+      const startOfDay = new Date(dateRange.start);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(dateRange.end);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      return transactionDate >= startOfDay && transactionDate <= endOfDay;
+    });
+    
+    // Filter berdasarkan search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(t => 
+        t.material?.toLowerCase().includes(query) ||
+        t.project?.toLowerCase().includes(query) ||
+        t.notes?.toLowerCase().includes(query) ||
+        t.userName?.toLowerCase().includes(query)
+      );
     }
     
-    const today = new Date();
-    const todayString = today.toLocaleDateString('id-ID', { 
-      timeZone: 'Asia/Jakarta',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-    
-    const todayTransactions = transactions.filter(t => {
-      if (!t.createdAt) return false;
-      
-      const transactionDate = new Date(t.createdAt);
-      const transactionString = transactionDate.toLocaleDateString('id-ID', { 
-        timeZone: 'Asia/Jakarta',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      });
-      
-      return transactionString === todayString;
-    });
-    
+    return filtered;
+  }, [transactions, searchQuery, dateRange]);
+
+  // Menghitung transaksi hari ini berdasarkan tanggal dan tipe
+  // Menghitung transaksi berdasarkan periode yang dipilih
+  const { inCount, outCount } = useMemo(() => {
     return {
-      inCount: todayTransactions.filter(t => t.type === 'in').length,
-      outCount: todayTransactions.filter(t => t.type === 'out').length,
+      inCount: filteredTransactions.filter(t => t.type === 'in').length,
+      outCount: filteredTransactions.filter(t => t.type === 'out').length,
     };
-  }, [transactions]);
+  }, [filteredTransactions]);
+
+  const handleDateRangeChange = (start: Date, end: Date, label: string) => {
+    setDateRange({ start, end, label });
+  };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('id-ID', { 
-      hour: '2-digit', 
+    return new Date(dateString).toLocaleTimeString('id-ID', {
+      hour: '2-digit',
       minute: '2-digit',
       timeZone: 'Asia/Jakarta'
     }) + ' WIB';
@@ -80,29 +102,11 @@ const HistoriesPage = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <Header title="Riwayat Transaksi" />
-      
+
       <div className="max-w-md mx-auto px-4 py-6 space-y-5">
         {/* Date Navigation */}
         <Card className="p-4 shadow-md bg-gradient-to-br from-card to-primary-light/10 animate-fade-in">
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" size="icon" className="hover:bg-primary/10">
-              <ChevronLeft className="h-5 w-5 text-primary" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-primary" />
-              <span className="font-display font-bold text-foreground">
-                {new Date().toLocaleDateString('id-ID', { 
-                  weekday: 'long', 
-                  day: 'numeric', 
-                  month: 'long', 
-                  year: 'numeric' 
-                })}
-              </span>
-            </div>
-            <Button variant="ghost" size="icon" className="hover:bg-primary/10">
-              <ChevronRight className="h-5 w-5 text-primary" />
-            </Button>
-          </div>
+          <DateRangeSelector onDateRangeChange={handleDateRangeChange} />
         </Card>
 
         {/* Summary Cards */}
@@ -132,7 +136,35 @@ const HistoriesPage = () => {
             </p>
           </Card>
         </div>
-        
+
+        {/* Search Bar */}
+        <Card className="p-4 animate-fade-in">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari material, proyek, atau catatan..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-10 h-11 bg-background"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 hover:bg-muted"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          {searchQuery && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Ditemukan {filteredTransactions.length} dari {transactions?.length || 0} transaksi
+            </p>
+          )}
+        </Card>
+
         {/* Error Message */}
         {error && (
           <Card className="p-4 bg-destructive/10 border-destructive/20">
@@ -167,19 +199,20 @@ const HistoriesPage = () => {
               <Card className="p-6 text-center">
                 <p className="text-muted-foreground">Memuat data...</p>
               </Card>
-            ) : transactions && transactions.length > 0 ? (
-              transactions.map((item, index) => (
-                <Card 
-                  key={item.id} 
-                  className="p-4 shadow-md hover:shadow-lg transition-all duration-300 border-l-4 animate-fade-in" 
-                  style={{ 
-                    borderLeftColor: item.type === "in" ? "hsl(var(--success))" : "hsl(var(--danger))",
-                    animationDelay: `${index * 0.1}s`
-                  }}
+            ) : filteredTransactions && filteredTransactions.length > 0 ? (
+              filteredTransactions.map((item, index) => (
+                <Card
+                  key={item.id}
+                  className={`p-4 shadow-sm hover:shadow-md transition-all duration-300 border-l-4 animate-fade-in group cursor-pointer ${
+                    item.type === "in" 
+                      ? "border-l-success/60 hover:border-l-success bg-gradient-to-r from-success/5 to-transparent hover:from-success/10" 
+                      : "border-l-danger/60 hover:border-l-danger bg-gradient-to-r from-danger/5 to-transparent hover:from-danger/10"
+                  }`}
+                  style={{ animationDelay: `${index * 0.05}s` }}
                 >
                   <div className="flex gap-4">
-                    <div className={`p-3 rounded-xl h-fit shadow-sm ${
-                      item.type === "in" ? "bg-success/10" : "bg-danger/10"
+                    <div className={`p-3 rounded-xl h-fit shadow-sm transition-all group-hover:scale-105 ${
+                      item.type === "in" ? "bg-success/10 group-hover:bg-success/20" : "bg-danger/10 group-hover:bg-danger/20"
                     }`}>
                       {item.type === "in" ? (
                         <ArrowDownCircle className="h-6 w-6 text-success" />
@@ -212,16 +245,26 @@ const HistoriesPage = () => {
                           Detail
                         </Button>
                       </div>
-                      
+
                       {item.notes && (
-                        <p className="text-xs text-muted-foreground mt-2 italic">
-                          {item.notes}
-                        </p>
+                        <div className="mt-3 p-2 bg-muted/30 rounded-md border-l-2 border-muted-foreground/20">
+                          <p className="text-xs text-muted-foreground italic leading-relaxed">
+                            &ldquo;{item.notes}&rdquo;
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>
                 </Card>
               ))
+            ) : searchQuery ? (
+              <Card className="p-6 text-center">
+                <Search className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground font-medium">Tidak ditemukan</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Coba kata kunci lain atau hapus filter pencarian
+                </p>
+              </Card>
             ) : (
               <Card className="p-6 text-center">
                 <p className="text-muted-foreground">Belum ada transaksi</p>
@@ -230,9 +273,9 @@ const HistoriesPage = () => {
           </TabsContent>
 
           <TabsContent value="in" className="space-y-3 mt-4">
-            {transactions?.filter(h => h.type === "in").map((item, index) => (
-              <Card 
-                key={item.id} 
+            {filteredTransactions?.filter(h => h.type === "in").map((item, index) => (
+              <Card
+                key={item.id}
                 className="p-4 shadow-md hover:shadow-lg transition-all duration-300 border-l-4 border-success animate-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
@@ -268,9 +311,9 @@ const HistoriesPage = () => {
           </TabsContent>
 
           <TabsContent value="out" className="space-y-3 mt-4">
-            {transactions?.filter(h => h.type === "out").map((item, index) => (
-              <Card 
-                key={item.id} 
+            {filteredTransactions?.filter(h => h.type === "out").map((item, index) => (
+              <Card
+                key={item.id}
                 className="p-4 shadow-md hover:shadow-lg transition-all duration-300 border-l-4 border-danger animate-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
