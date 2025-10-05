@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { transactions, inventories, projects, user } from '@/lib/schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, sql } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -114,6 +114,57 @@ export async function POST(request: NextRequest) {
         error: 'Invalid user',
         details: 'The specified user does not exist'
       }, { status: 404 });
+    }
+
+    // Additional validation for 'out' transactions - check stock availability
+    if (type === 'out') {
+      // Get current stock for this inventory
+      const stockQuery = await db
+        .select({
+          initialStock: inventories.initialStock,
+          stockIn: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'in' THEN CAST(${transactions.quantity} AS INTEGER) ELSE 0 END), 0)`,
+          stockOut: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'out' THEN CAST(${transactions.quantity} AS INTEGER) ELSE 0 END), 0)`
+        })
+        .from(inventories)
+        .leftJoin(transactions, eq(inventories.id, transactions.inventoryId))
+        .where(eq(inventories.id, inventoryId))
+        .groupBy(inventories.id);
+
+      if (stockQuery.length === 0) {
+        return NextResponse.json({ 
+          error: 'Inventory not found',
+          details: 'Cannot calculate stock for the specified material'
+        }, { status: 404 });
+      }
+
+      const stock = stockQuery[0];
+      const currentStock = Number(stock.initialStock || 0) + Number(stock.stockIn) - Number(stock.stockOut);
+      const requestedQuantity = Number(quantity);
+
+      console.log('Stock validation:', { 
+        currentStock, 
+        requestedQuantity, 
+        initialStock: stock.initialStock,
+        stockIn: stock.stockIn,
+        stockOut: stock.stockOut
+      });
+
+      if (currentStock <= 0) {
+        return NextResponse.json({ 
+          error: 'Insufficient stock',
+          details: 'Material is out of stock',
+          currentStock: 0
+        }, { status: 400 });
+      }
+
+      if (requestedQuantity > currentStock) {
+        return NextResponse.json({ 
+          error: 'Insufficient stock',
+          details: `Requested quantity (${requestedQuantity}) exceeds available stock (${currentStock})`,
+          currentStock,
+          requestedQuantity
+        }, { status: 400 });
+      }
     }
 
     const transactionData = {

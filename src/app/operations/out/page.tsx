@@ -84,29 +84,47 @@ const MaterialOutPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Comprehensive validation for Material Keluar
     if (!formData.projectId || !formData.inventoryId || !formData.quantity) {
       toast.error("Mohon lengkapi semua field yang wajib diisi");
       return;
     }
 
-    // Validate stock availability
+    if (!user?.id) {
+      toast.error("Sesi tidak valid, silakan login ulang");
+      return;
+    }
+
+    // Get current available stock
     const availableStock = getAvailableStock(formData.inventoryId);
     const requestedQuantity = parseFloat(formData.quantity);
     
-    if (requestedQuantity > availableStock) {
-      toast.error("Jumlah melebihi stok yang tersedia", {
-        description: `Stok tersedia: ${availableStock} ${formData.unit}`,
+    // Strict validation rules for Material Keluar
+    if (isNaN(requestedQuantity) || requestedQuantity <= 0) {
+      toast.error("Jumlah harus berupa angka positif yang valid");
+      return;
+    }
+
+    if (availableStock <= 0) {
+      toast.error("Material tidak tersedia", {
+        description: "Stok material ini sudah habis",
       });
       return;
     }
 
-    if (requestedQuantity <= 0) {
-      toast.error("Jumlah harus lebih dari 0");
+    if (requestedQuantity > availableStock) {
+      toast.error("Jumlah melebihi stok yang tersedia", {
+        description: `Maksimal yang dapat dikeluarkan: ${availableStock} ${formData.unit}`,
+      });
       return;
     }
 
-    if (!user?.id) {
-      toast.error("Sesi tidak valid, silakan login ulang");
+    // Additional validation: Check if material still exists and has stock
+    const selectedMaterial = availableMaterials.find(m => m.id.toString() === formData.inventoryId);
+    if (!selectedMaterial || selectedMaterial.currentStock <= 0) {
+      toast.error("Material tidak valid atau stok sudah habis", {
+        description: "Silakan pilih material lain atau refresh halaman",
+      });
       return;
     }
 
@@ -230,16 +248,17 @@ const MaterialOutPage = () => {
                     setFormData(prev => ({ 
                       ...prev, 
                       inventoryId: value,
-                      unit: selectedInventory?.unit || ''
+                      unit: selectedInventory?.unit || '',
+                      quantity: '' // Reset quantity when material changes
                     }));
                   }}
-                  onDeleteMaterial={() => {}} // No delete functionality in out form
                   placeholder={formData.projectId ? 
                     (availableMaterials.length === 0 ? "Tidak ada material dengan stok tersedia" : "Pilih jenis material") : 
                     "Pilih proyek terlebih dahulu"
                   }
                   disabled={!formData.projectId || availableMaterials.length === 0}
                   showStock={true}
+                  allowDelete={false} // Disable delete functionality for Material Keluar
                 />
               )}
             </div>
@@ -250,17 +269,51 @@ const MaterialOutPage = () => {
                 <Input 
                   id="quantity" 
                   type="number" 
-                  placeholder="50" 
+                  placeholder="Masukkan jumlah" 
                   value={formData.quantity}
-                  onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const numValue = parseFloat(value);
+                    const maxStock = getAvailableStock(formData.inventoryId);
+                    
+                    // Only allow valid positive numbers within stock limit
+                    if (value === '' || (numValue > 0 && numValue <= maxStock)) {
+                      setFormData(prev => ({ ...prev, quantity: value }));
+                    }
+                  }}
                   max={getAvailableStock(formData.inventoryId)}
-                  className="h-12 sm:h-11 bg-background text-base sm:text-sm"
-                  inputMode="numeric"
+                  min="0.01"
+                  step="0.01"
+                  className={`h-12 sm:h-11 bg-background text-base sm:text-sm ${
+                    formData.quantity && parseFloat(formData.quantity) > getAvailableStock(formData.inventoryId) 
+                      ? 'border-destructive focus:border-destructive' 
+                      : ''
+                  }`}
+                  inputMode="decimal"
+                  disabled={!formData.inventoryId || getAvailableStock(formData.inventoryId) <= 0}
                 />
                 {formData.inventoryId && (
-                  <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-md">
-                    Stok tersedia: {getAvailableStock(formData.inventoryId)} {formData.unit}
-                  </p>
+                  <div className="space-y-1">
+                    <p className={`text-xs p-2 rounded-md ${
+                      getAvailableStock(formData.inventoryId) <= 0 
+                        ? 'bg-destructive/10 text-destructive border border-destructive/20' 
+                        : getAvailableStock(formData.inventoryId) < 10
+                        ? 'bg-warning/10 text-warning border border-warning/20'
+                        : 'bg-success/10 text-success border border-success/20'
+                    }`}>
+                      <span className="font-medium">
+                        Stok tersedia: {getAvailableStock(formData.inventoryId)} {formData.unit}
+                      </span>
+                      {getAvailableStock(formData.inventoryId) <= 0 && (
+                        <span className="block mt-1">⚠️ Stok habis - tidak dapat mengeluarkan material</span>
+                      )}
+                    </p>
+                    {formData.quantity && parseFloat(formData.quantity) > getAvailableStock(formData.inventoryId) && (
+                      <p className="text-xs text-destructive bg-destructive/10 p-2 rounded-md border border-destructive/20">
+                        ❌ Jumlah melebihi stok yang tersedia
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
               <div className="space-y-2">
@@ -331,11 +384,49 @@ const MaterialOutPage = () => {
             <div className="pt-4 sm:pt-6">
               <Button 
                 type="submit" 
-                disabled={loading}
+                disabled={
+                  loading || 
+                  !formData.projectId || 
+                  !formData.inventoryId || 
+                  !formData.quantity || 
+                  parseFloat(formData.quantity || '0') <= 0 ||
+                  parseFloat(formData.quantity || '0') > getAvailableStock(formData.inventoryId) ||
+                  getAvailableStock(formData.inventoryId) <= 0 ||
+                  availableMaterials.length === 0
+                }
                 className="w-full h-14 sm:h-12 bg-gradient-danger text-base font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 touch-manipulation"
               >
-                {loading ? 'Menyimpan...' : 'Simpan Laporan Material Keluar'}
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-danger-foreground/30 border-t-danger-foreground rounded-full animate-spin" />
+                    Menyimpan...
+                  </div>
+                ) : (
+                  'Simpan Laporan Material Keluar'
+                )}
               </Button>
+              
+              {/* Validation Messages */}
+              {!formData.projectId && (
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Pilih proyek terlebih dahulu
+                </p>
+              )}
+              {formData.projectId && availableMaterials.length === 0 && (
+                <p className="text-xs text-destructive text-center mt-2">
+                  Tidak ada material dengan stok tersedia di proyek ini
+                </p>
+              )}
+              {formData.inventoryId && getAvailableStock(formData.inventoryId) <= 0 && (
+                <p className="text-xs text-destructive text-center mt-2">
+                  Material yang dipilih tidak memiliki stok
+                </p>
+              )}
+              {formData.quantity && parseFloat(formData.quantity) > getAvailableStock(formData.inventoryId) && (
+                <p className="text-xs text-destructive text-center mt-2">
+                  Jumlah melebihi stok yang tersedia
+                </p>
+              )}
             </div>
           </form>
         </Card>

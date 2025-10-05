@@ -18,11 +18,12 @@ interface MaterialSelectorProps {
   materials: Material[];
   value: string;
   onValueChange: (value: string) => void;
-  onDeleteMaterial: (materialId: string, materialName: string, materialData: Material) => void;
+  onDeleteMaterial?: (materialId: string, materialName: string, materialData: Material) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
   showStock?: boolean;
+  allowDelete?: boolean;
 }
 
 export function MaterialSelector({
@@ -33,7 +34,8 @@ export function MaterialSelector({
   placeholder = "Pilih material",
   disabled = false,
   className = "",
-  showStock = false
+  showStock = false,
+  allowDelete = true
 }: MaterialSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -56,8 +58,10 @@ export function MaterialSelector({
   const handleDeleteClick = (e: React.MouseEvent, material: Material) => {
     e.stopPropagation();
     e.preventDefault();
-    onDeleteMaterial(material.id.toString(), material.name, material);
-    setIsOpen(false);
+    if (onDeleteMaterial && allowDelete) {
+      onDeleteMaterial(material.id.toString(), material.name, material);
+      setIsOpen(false);
+    }
   };
 
   const handleItemClick = (materialId: string) => {
@@ -147,20 +151,22 @@ export function MaterialSelector({
                     </div>
                   </div>
                   
-                  {/* Delete Button - Always visible for mobile */}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => handleDeleteClick(e, material)}
-                    className={cn(
-                      "h-6 w-6 ml-2 flex-shrink-0 opacity-70 transition-all",
-                      "hover:bg-destructive/10 hover:text-destructive hover:opacity-100",
-                      "active:scale-95 touch-manipulation"
-                    )}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                  {/* Delete Button - Only show if allowed */}
+                  {allowDelete && onDeleteMaterial && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => handleDeleteClick(e, material)}
+                      className={cn(
+                        "h-6 w-6 ml-2 flex-shrink-0 opacity-70 transition-all",
+                        "hover:bg-destructive/10 hover:text-destructive hover:opacity-100",
+                        "active:scale-95 touch-manipulation"
+                      )}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
