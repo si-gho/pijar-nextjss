@@ -20,7 +20,6 @@ export function AddMaterialDialog({ projectId, onMaterialAdded }: AddMaterialDia
   const [formData, setFormData] = useState({
     name: '',
     unit: '',
-    initialStock: '',
     description: '',
   });
 
@@ -40,18 +39,14 @@ export function AddMaterialDialog({ projectId, onMaterialAdded }: AddMaterialDia
       return;
     }
 
-    // Validasi stok awal jika diisi
-    if (formData.initialStock && (isNaN(Number(formData.initialStock)) || Number(formData.initialStock) < 0)) {
-      toast.error("Stok awal harus berupa angka positif");
-      return;
-    }
+
 
     try {
       const result = await postData({
         projectId: parseInt(projectId),
         name: formData.name.trim(),
         unit: formData.unit.trim(),
-        initialStock: formData.initialStock || '0',
+        initialStock: '0', // Default stok awal 0, user akan input lewat form utama
         description: formData.description.trim(),
       });
 
@@ -61,7 +56,7 @@ export function AddMaterialDialog({ projectId, onMaterialAdded }: AddMaterialDia
         });
 
         // Reset form and close dialog
-        setFormData({ name: '', unit: '', initialStock: '', description: '' });
+        setFormData({ name: '', unit: '', description: '' });
         setIsOpen(false);
         
         // Refresh material list
@@ -89,7 +84,7 @@ export function AddMaterialDialog({ projectId, onMaterialAdded }: AddMaterialDia
 
   const handleClose = () => {
     setIsOpen(false);
-    setFormData({ name: '', unit: '', initialStock: '', description: '' });
+    setFormData({ name: '', unit: '', description: '' });
   };
 
   if (!isOpen) {
@@ -123,7 +118,7 @@ export function AddMaterialDialog({ projectId, onMaterialAdded }: AddMaterialDia
                     Tambah Material Baru
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    Tambahkan material yang belum ada di daftar
+                    Tambahkan jenis material baru, stok diisi lewat form utama
                   </p>
                 </div>
               </div>
@@ -157,19 +152,7 @@ export function AddMaterialDialog({ projectId, onMaterialAdded }: AddMaterialDia
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="initialStock" className="text-sm font-semibold">
-              Stok Awal (Opsional)
-            </Label>
-            <Input
-              id="initialStock"
-              type="number"
-              placeholder="0"
-              value={formData.initialStock}
-              onChange={(e) => setFormData(prev => ({ ...prev, initialStock: e.target.value }))}
-              className="h-11 bg-background"
-            />
-          </div>
+
 
           <div className="space-y-2">
             <Label htmlFor="description" className="text-sm font-semibold">

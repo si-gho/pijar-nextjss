@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowDownCircle, ArrowUpCircle, ChevronLeft, ChevronRight, Filter, Calendar } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import { useMemo } from "react";
+import { ExportButton } from "@/components/ExportButton";
 
 interface Transaction {
   id: number;
@@ -25,59 +26,39 @@ interface Transaction {
 
 const HistoriesPage = () => {
   const { data: transactions, loading, error } = useApi<Transaction[]>('/api/operations/transactions');
-  
-  // Debug: Log data untuk memastikan API berfungsi
-  console.log('API Response:', { 
-    transactions: transactions?.length || 0, 
-    loading, 
-    error,
-    sample: transactions?.[0] 
-  });
 
   // Menghitung transaksi hari ini berdasarkan tanggal dan tipe
   const { inCount, outCount } = useMemo(() => {
     if (!transactions || !Array.isArray(transactions)) {
-      console.log('No transactions data or not array:', transactions);
       return { inCount: 0, outCount: 0 };
     }
     
-    try {
-      const today = new Date();
-      const todayString = today.toLocaleDateString('id-ID', { 
+    const today = new Date();
+    const todayString = today.toLocaleDateString('id-ID', { 
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    
+    const todayTransactions = transactions.filter(t => {
+      if (!t.createdAt) return false;
+      
+      const transactionDate = new Date(t.createdAt);
+      const transactionString = transactionDate.toLocaleDateString('id-ID', { 
         timeZone: 'Asia/Jakarta',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
       });
       
-      console.log('Today string:', todayString);
-      
-      const todayTransactions = transactions.filter(t => {
-        if (!t.createdAt) return false;
-        
-        const transactionDate = new Date(t.createdAt);
-        const transactionString = transactionDate.toLocaleDateString('id-ID', { 
-          timeZone: 'Asia/Jakarta',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        });
-        
-        return transactionString === todayString;
-      });
-      
-      console.log('Today transactions:', todayTransactions.length);
-      
-      const inCount = todayTransactions.filter(t => t.type === 'in').length;
-      const outCount = todayTransactions.filter(t => t.type === 'out').length;
-      
-      console.log('Counts:', { inCount, outCount });
-      
-      return { inCount, outCount };
-    } catch (err) {
-      console.error('Error calculating counts:', err);
-      return { inCount: 0, outCount: 0 };
-    }
+      return transactionString === todayString;
+    });
+    
+    return {
+      inCount: todayTransactions.filter(t => t.type === 'in').length,
+      outCount: todayTransactions.filter(t => t.type === 'out').length,
+    };
   }, [transactions]);
 
   const formatTime = (dateString: string) => {
@@ -173,9 +154,12 @@ const HistoriesPage = () => {
                 Keluar
               </TabsTrigger>
             </TabsList>
-            <Button variant="outline" size="sm" className="ml-2">
-              <Filter className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4" />
+              </Button>
+              <ExportButton transactions={transactions || []} />
+            </div>
           </div>
 
           <TabsContent value="all" className="space-y-3 mt-4">
