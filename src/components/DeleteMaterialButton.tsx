@@ -32,7 +32,8 @@ export function DeleteMaterialConfirmation({
   onClose, 
   onMaterialDeleted 
 }: DeleteMaterialConfirmationProps) {
-  const { deleteData, loading } = useApi(`/api/operations/inventories/${materialId}`, { autoFetch: false });
+  const [loading, setLoading] = useState(false);
+  const [showForceDelete, setShowForceDelete] = useState(false);
   
   // Fetch related transaction data when dialog opens
   const { data: relatedData, loading: loadingRelated } = useApi<{
@@ -45,21 +46,62 @@ export function DeleteMaterialConfirmation({
     { autoFetch: isOpen && !!materialId }
   );
 
-  const handleDelete = async () => {
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setShowForceDelete(false);
+      setLoading(false);
+    }
+  }, [isOpen]);
+
+  const handleDelete = async (forceDelete = false) => {
+    setLoading(true);
+    
     try {
-      await deleteData();
+      const url = `/api/operations/inventories/${materialId}${forceDelete ? '?force=true' : ''}`;
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        if (response.status === 409 && result.hasTransactions) {
+          setShowForceDelete(true);
+          return;
+        } else if (response.status === 404) {
+          toast.error("Material tidak ditemukan", {
+            description: "Material yang ingin dihapus tidak ditemukan dalam sistem",
+          });
+        } else {
+          toast.error("Gagal menghapus material", {
+            description: result.details || "Terjadi kesalahan saat menghapus material",
+          });
+        }
+        return;
+      }
+      
+      const successMessage = result.deletedWithTransactions 
+        ? `${materialName} dan semua transaksi terkait telah dihapus dari sistem`
+        : `${materialName} telah dihapus dari sistem`;
       
       toast.success("Material berhasil dihapus", {
-        description: `${materialName} telah dihapus dari sistem`,
+        description: successMessage,
       });
 
       onClose();
       onMaterialDeleted();
 
     } catch (error) {
+      console.error('Error deleting material:', error);
       toast.error("Gagal menghapus material", {
-        description: "Material mungkin masih digunakan dalam transaksi",
+        description: "Periksa koneksi internet dan coba lagi",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -153,11 +195,34 @@ export function DeleteMaterialConfirmation({
                   <div>
                     <div className="font-medium text-destructive">Peringatan:</div>
                     <div className="text-destructive/80 mt-1">
-                      Tindakan ini tidak dapat dibatalkan dan akan menghapus semua data terkait material ini.
+                      {showForceDelete ? (
+                        <>
+                          Material ini memiliki riwayat transaksi. Menghapus paksa akan menghapus material beserta SEMUA transaksi terkait. 
+                          Tindakan ini tidak dapat dibatalkan!
+                        </>
+                      ) : (
+                        "Tindakan ini tidak dapat dibatalkan dan akan menghapus semua data terkait material ini."
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Force Delete Notice */}
+              {showForceDelete && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <div className="font-medium text-red-800">Material Memiliki Transaksi</div>
+                      <div className="text-red-700 mt-1">
+                        Material ini tidak dapat dihapus karena masih memiliki riwayat transaksi. 
+                        Anda dapat memilih &ldquo;Hapus Paksa&rdquo; untuk menghapus material beserta semua transaksi terkait.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </DialogDescription>
         </DialogHeader>
@@ -172,25 +237,48 @@ export function DeleteMaterialConfirmation({
           >
             Batal
           </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={loading}
-            className="flex-1"
-          >
-            {loading ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-destructive-foreground/30 border-t-destructive-foreground rounded-full animate-spin" />
-                Menghapus...
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Trash2 className="h-4 w-4" />
-                Ya, Hapus
-              </div>
-            )}
-          </Button>
+          
+          {!showForceDelete ? (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => handleDelete(false)}
+              disabled={loading}
+              className="flex-1"
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-destructive-foreground/30 border-t-destructive-foreground rounded-full animate-spin" />
+                  Menghapus...
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Ya, Hapus
+                </div>
+              )}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => handleDelete(true)}
+              disabled={loading}
+              className="flex-1 bg-red-600 hover:bg-red-700"
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-destructive-foreground/30 border-t-destructive-foreground rounded-full animate-spin" />
+                  Menghapus...
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Hapus Paksa
+                </div>
+              )}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

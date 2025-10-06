@@ -18,6 +18,10 @@ export async function DELETE(
       }, { status: 400 });
     }
 
+    // Get query parameter for force delete
+    const url = new URL(request.url);
+    const forceDelete = url.searchParams.get('force') === 'true';
+
     // Check if inventory exists
     const inventory = await db
       .select()
@@ -38,11 +42,17 @@ export async function DELETE(
       .where(eq(transactions.inventoryId, inventoryId))
       .limit(1);
 
-    if (relatedTransactions.length > 0) {
+    if (relatedTransactions.length > 0 && !forceDelete) {
       return NextResponse.json({ 
         error: 'Cannot delete inventory',
-        details: 'This material is used in existing transactions and cannot be deleted'
+        details: 'This material is used in existing transactions and cannot be deleted',
+        hasTransactions: true
       }, { status: 409 });
+    }
+
+    // If force delete is requested, delete related transactions first
+    if (forceDelete && relatedTransactions.length > 0) {
+      await db.delete(transactions).where(eq(transactions.inventoryId, inventoryId));
     }
 
     // Delete the inventory
@@ -50,7 +60,8 @@ export async function DELETE(
 
     return NextResponse.json({ 
       message: 'Inventory deleted successfully',
-      deletedId: inventoryId 
+      deletedId: inventoryId,
+      deletedWithTransactions: forceDelete && relatedTransactions.length > 0
     });
   } catch (error) {
     console.error('Error deleting inventory:', error);
